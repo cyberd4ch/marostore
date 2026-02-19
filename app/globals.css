@@ -1,0 +1,250 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ===== MARO'S COLLECTION – CUSTOM COLOR PALETTE =====
+   #0D1321 – rich navy (dark background / foreground)
+   #1D2D44 – deep slate blue (primary / accent)
+   #3E5C76 – muted cadet blue (secondary / accent)
+   #748CAB – soft denim (secondary / interactive)
+   #F0EBD8 – warm cream (light background / text on dark)
+   ==================================================== */
+
+@layer base {
+  :root {
+    /* Light theme – warm & approachable */
+    --background: 48 44% 89%;
+    /* #F0EBD8 – cream */
+    --foreground: 222 43% 9%;
+    /* #0D1321 – navy */
+    --card: 48 44% 89%;
+    --card-foreground: 222 43% 9%;
+    --popover: 48 44% 89%;
+    --popover-foreground: 222 43% 9%;
+    --primary: 216 40% 19%;
+    /* #1D2D44 – deep slate */
+    --primary-foreground: 48 44% 89%;
+    --secondary: 214 25% 56%;
+    /* #748CAB – soft denim */
+    --secondary-foreground: 222 43% 9%;
+    --muted: 208 31% 35% / 0.8;
+    /* #3E5C76 with transparency */
+    --muted-foreground: 48 44% 89%;
+    --accent: 208 31% 35%;
+    /* #3E5C76 – muted cadet */
+    --accent-foreground: 48 44% 89%;
+    --destructive: 0 84.2% 60.2%;
+    /* keep classic red */
+    --destructive-foreground: 48 44% 89%;
+    --border: 214 25% 56% / 0.3;
+    /* soft denim, semi‑transparent */
+    --input: 214 25% 56% / 0.3;
+    --ring: 216 40% 19%;
+    /* primary for focus rings */
+    --radius: 0.5rem;
+
+    /* Font variables (set in layout.tsx) */
+    --font-space-grotesk: 'Space Grotesk', sans-serif;
+    --font-dm-serif-display: 'DM Serif Display', serif;
+    --font-funnel-display: 'Funnel Display', sans-serif;
+    --font-bricolage-grotesque: 'Bricolage Grotesque', sans-serif;
+  }
+
+  .dark {
+    /* Dark theme – sophisticated & moody */
+    --background: 222 43% 9%;
+    /* #0D1321 – rich navy */
+    --foreground: 48 44% 89%;
+    /* #F0EBD8 – cream */
+    --card: 222 43% 9%;
+    --card-foreground: 48 44% 89%;
+    --popover: 222 43% 9%;
+    --popover-foreground: 48 44% 89%;
+    --primary: 214 25% 56%;
+    /* #748CAB – soft denim (brighter) */
+    --primary-foreground: 222 43% 9%;
+    --secondary: 208 31% 35%;
+    /* #3E5C76 – muted cadet */
+    --secondary-foreground: 48 44% 89%;
+    --muted: 216 40% 19% / 0.7;
+    /* #1D2D44 – deep slate, transparent */
+    --muted-foreground: 48 44% 89%;
+    --accent: 216 40% 19%;
+    /* #1D2D44 – deep slate */
+    --accent-foreground: 48 44% 89%;
+    --destructive: 0 62.8% 30.6%;
+    /* adjusted for dark mode */
+    --destructive-foreground: 48 44% 89%;
+    --border: 216 40% 19% / 0.4;
+    --input: 216 40% 19% / 0.4;
+    --ring: 214 25% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  /* Font utility classes */
+  .font-space-grotesk {
+    font-family: var(--font-space-grotesk), sans-serif;
+  }
+
+  .font-dm-serif {
+    font-family: var(--font-dm-serif-display), serif;
+  }
+
+  .font-funnel {
+    font-family: var(--font-funnel-display), sans-serif;
+  }
+
+  .font-bricolage {
+    font-family: var(--font-bricolage-grotesque), sans-serif;
+  }
+
+  /* Typography presets */
+  h1,
+  .h1 {
+    @apply font-dm-serif text-4xl md:text-5xl lg:text-6xl font-normal tracking-tight;
+  }
+
+  h2,
+  .h2 {
+    @apply font-dm-serif text-3xl md:text-4xl font-normal;
+  }
+
+  h3,
+  .h3 {
+    @apply font-space-grotesk text-2xl md:text-3xl font-semibold;
+  }
+
+  h4,
+  .h4 {
+    @apply font-space-grotesk text-xl md:text-2xl font-medium;
+  }
+
+  body,
+  p,
+  .body {
+    @apply font-space-grotesk text-base md:text-lg font-normal;
+  }
+
+  .subtitle {
+    @apply font-funnel text-lg md:text-xl font-normal tracking-wide;
+  }
+
+  .caption {
+    @apply font-bricolage text-sm md:text-base font-light;
+  }
+
+  .button-text {
+    @apply font-space-grotesk font-medium tracking-wide;
+  }
+
+  .display-large {
+    @apply font-funnel text-6xl md:text-7xl lg:text-8xl font-bold tracking-tighter;
+  }
+
+  .display-medium {
+    @apply font-funnel text-5xl md:text-6xl lg:text-7xl font-semibold;
+  }
+}
+
+/* Blob animation (keep for decorative elements) */
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+.animate-blob {
+  animation: blob 7s infinite;
+}
+
+.animation-delay-2000 {
+  animation-delay: 2s;
+}
+
+.animation-delay-4000 {
+  animation-delay: 4s;
+}
+
+/* Variable font weight utilities (for supported fonts) */
+@layer utilities {
+  .font-thin {
+    font-variation-settings: 'wght' 100;
+  }
+
+  .font-extralight {
+    font-variation-settings: 'wght' 200;
+  }
+
+  .font-light {
+    font-variation-settings: 'wght' 300;
+  }
+
+  .font-normal {
+    font-variation-settings: 'wght' 400;
+  }
+
+  .font-medium {
+    font-variation-settings: 'wght' 500;
+  }
+
+  .font-semibold {
+    font-variation-settings: 'wght' 600;
+  }
+
+  .font-bold {
+    font-variation-settings: 'wght' 700;
+  }
+
+  .font-extrabold {
+    font-variation-settings: 'wght' 800;
+  }
+
+  .font-black {
+    font-variation-settings: 'wght' 900;
+  }
+
+  .tracking-tighter {
+    letter-spacing: -0.05em;
+  }
+
+  .tracking-tight {
+    letter-spacing: -0.025em;
+  }
+
+  .tracking-normal {
+    letter-spacing: 0;
+  }
+
+  .tracking-wide {
+    letter-spacing: 0.025em;
+  }
+
+  .tracking-wider {
+    letter-spacing: 0.05em;
+  }
+
+  .tracking-widest {
+    letter-spacing: 0.1em;
+  }
+}
