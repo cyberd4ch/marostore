@@ -1,15 +1,40 @@
 "use client";
 
-import { useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useSelector } from "react-redux";
+import { useRouter, useSearchParams } from "next/navigation";
+import { selectCurrentUser } from "@/app/store/user/user.selector"; // Adjust path as needed
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SignInForm from "@/components/sign-in-form/sign-in-form.component";
 import SignUpForm from "@/components/sign-up-form/sign-up-form.component";
+import { Loader2 } from "lucide-react";
 
 export default function AuthPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
+    const currentUser = useSelector(selectCurrentUser);
+    
     const initialTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
     const [activeTab, setActiveTab] = useState(initialTab);
+
+    // NAVIGATION LOGIC: Watch for successful login
+    useEffect(() => {
+        if (currentUser) {
+            // Check if user has completed profile (optional check)
+            // If you have a 'profileCompleted' flag in Redux, use it here
+            router.push("/onboarding"); 
+        }
+    }, [currentUser, router]);
+
+    // If user is already logged in, show a loader while redirecting
+    if (currentUser) {
+        return (
+            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="text-muted-foreground animate-pulse">Redirecting to onboarding...</p>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-background p-4">

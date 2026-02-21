@@ -1,3 +1,4 @@
+import { StoreProvider } from "@/app/store-provider";
 import { Providers } from './providers';
 import { Space_Grotesk, DM_Serif_Display } from 'next/font/google';
 import Navigation from '@/app/routes/navigation';
@@ -22,7 +23,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <React.StrictMode>
           <Providers>
             <Navigation>
-              {children}
+              <StoreProvider>
+                {children}
+              </StoreProvider>
               <Toaster position="top-right" richColors />
               </Navigation>
           </Providers>

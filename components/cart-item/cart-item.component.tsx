@@ -4,6 +4,7 @@
 import Image from 'next/image';
 import { FC } from 'react';
 import { CartItem as TCartItem } from '../../app/store/cart/cart.types';
+import { Button } from "@/components/ui/button";
 import { Plus, Minus, Trash2 } from 'lucide-react';
 
 type CartItemProps = {
@@ -17,40 +18,50 @@ const CartItem: FC<CartItemProps> = ({ cartItem, onIncrement, onDecrement, onRem
     const { name, imageUrl, price, quantity } = cartItem;
 
     return (
-        <div className="flex items-start gap-2 p-2 border-b border-gray-200 last:border-0">
-            <Image
-                src={imageUrl}
-                alt={name}
-                width={60}
-                height={60}
-                className="w-16 h-16 object-cover rounded"
-            />
-            <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-medium truncate">{name}</h4>
-                <p className="text-sm text-gray-600">${price.toFixed(2)}</p>
-                <div className="flex items-center gap-1 mt-1">
-                    <button
-                        onClick={() => onDecrement(cartItem)}
-                        className="p-1 rounded-full hover:bg-gray-200"
-                        aria-label="Decrease quantity"
-                    >
-                        <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="w-6 text-center text-sm">{quantity}</span>
-                    <button
-                        onClick={() => onIncrement(cartItem)}
-                        className="p-1 rounded-full hover:bg-gray-200"
-                        aria-label="Increase quantity"
-                    >
-                        <Plus className="w-4 h-4" />
-                    </button>
-                    <button
+        <div className="relative flex items-start gap-4 p-2 border-b border-gray-200 last:border-0">
+            <div className="h-20 w-24 flex-shrink-0 overflow-hidden rounded-xl bg-slate-100 p-2">
+                <Image
+                    src={imageUrl}
+                    alt={name}
+                    width={80}
+                    height={80}
+                    className="h-full w-full object-contain"
+                />
+            </div>
+            <div className="flex flex-1 flex-col justify-between">
+                <div className="flex justify-between items-start">
+                    <div>
+                        <h4 className="text-sm font-medium truncate">{name}</h4>
+                        <p className="text-sm text-gray-600">₵{price.toFixed(2)}</p>
+                    </div>
+                                        <Button
                         onClick={() => onRemove(cartItem)}
-                        className="p-1 ml-2 rounded-full hover:bg-red-100 text-red-600"
+                        className="text-slate-400 hover:text-red-500 transition-colors"
                         aria-label="Remove item"
                     >
-                        <Trash2 className="w-4 h-4" />
-                    </button>
+                        <Trash2 className="h-5 w-5" />
+                    </Button>
+                </div>
+                <div className="flex items-center justify-between mt-2">
+                    <div className="flex items-center rounded-lg border border-slate-200 px-1 py-1">
+                                            <Button
+                        onClick={() => onDecrement(cartItem)}
+                        variant="ghost" size="icon" className="h-7 w-7 rounded-md"
+                        aria-label="Decrease quantity"
+                    >
+                        <Minus className="h-3 w-3" />
+                    </Button>
+                    <Button
+                        onClick={() => onIncrement(cartItem)}
+                        variant="ghost" size="icon" className="h-7 w-7 rounded-md"
+                        aria-label="Increase quantity"
+                    >
+                        <Plus className="h-3 w-3" />
+                    </Button>
+                    </div>
+                </div>
+                <div className="text-right">
+                    <p className="text-sm font-medium">₵{(price * quantity).toFixed(2)}</p>
                 </div>
             </div>
         </div>

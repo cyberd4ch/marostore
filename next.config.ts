@@ -1,16 +1,24 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Add allowedDevOrigins at the top level
+  allowedDevOrigins: ['192.168.0.134'],
+
   images: {
     remotePatterns: [
       {
         protocol: 'https',
         hostname: 'fakestoreapi.com',
         port: '',
-        pathname: '/img/**', // allows all images under /img/
-        search: '', // no specific query params required
+        pathname: '/img/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'i.ibb.co',
+        // optionally specify pathname if needed, e.g., '/**' to allow all
+        pathname: '/**',
       },
     ],
-    domains: ['i.ibb.co']
+    // Remove the deprecated domains array
   },
 };
 

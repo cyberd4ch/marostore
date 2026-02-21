@@ -1,8 +1,23 @@
 import { configureStore, Middleware } from '@reduxjs/toolkit';
 import { persistStore, persistCombineReducers } from 'redux-persist';
-import storage from 'redux-persist/lib/storage';
 import logger from 'redux-logger';
 import createSagaMiddleware from 'redux-saga';
+
+// --- NEW STORAGE HANDLING ---
+import createWebStorage from "redux-persist/lib/storage/createWebStorage";
+
+const createNoopStorage = () => {
+    return {
+        getItem(_key: any) { return Promise.resolve(null); },
+        setItem(_key: any, value: any) { return Promise.resolve(value); },
+        removeItem(_key: any) { return Promise.resolve(); },
+    };
+};
+
+const storage = typeof window !== "undefined"
+    ? createWebStorage("local")
+    : createNoopStorage();
+// ----------------------------
 
 import { rootSaga } from './root-saga';
 import { userReducer } from './user/user.reducer';
@@ -22,6 +37,8 @@ const persistedReducer = persistCombineReducers(persistConfig, {
     categories: categoriesReducer,
     cart: cartReducer,
 });
+
+
 
 // 3. Create saga middleware instance
 const sagaMiddlewareInstance = createSagaMiddleware();
