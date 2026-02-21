@@ -2,9 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Search, Package } from "lucide-react";
-import { collection, getDocs, limit, query } from "firebase/firestore";
-import { db } from "@/app/utils/firebase/firebase.utils";
+import { DialogTitle, DialogDescription } from "@radix-ui/react-dialog";
+import SHOP_DATA from "@/app/utils/shop/shop-data"; 
+
 import {
     CommandDialog,
     CommandEmpty,
@@ -14,69 +14,88 @@ import {
     CommandList,
 } from "@/components/ui/command";
 
-interface Product {
-    id: string;
-    name: string;
-    category: string;
+interface SearchCommandProps {
+    open: boolean;
+    setOpen: (open: boolean) => void;
 }
 
-// We export the Dialog logic so we can trigger it from anywhere
-export function SearchCommand({ open, setOpen }: { open: boolean, setOpen: (open: boolean) => void }) {
+export function SearchCommand({ open, setOpen }: SearchCommandProps) {
     const router = useRouter();
-    const [products, setProducts] = React.useState<Product[]>([]);
-    const [loading, setLoading] = React.useState(false);
 
-    // Fetch initial products/catalog when component mounts
-    React.useEffect(() => {
-        const fetchProducts = async () => {
-            setLoading(true);
-            try {
-                const q = query(collection(db, "products"), limit(20));
-                const querySnapshot = await getDocs(q);
-                const items = querySnapshot.docs.map(doc => ({
-                    id: doc.id,
-                    ...doc.data()
-                })) as Product[];
-                setProducts(items);
-            } catch (e) {
-                console.error("Error fetching search results:", e);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchProducts();
+    // Flatten products once. No need for manual state/filtering, Command handles it instantly.
+    const allProducts = React.useMemo(() => {
+        return SHOP_DATA.flatMap((category) =>
+            category.items.map((item) => ({
+                ...item,
+                categoryTitle: category.title,
+                categoryRoute: category.routeName,
+            }))
+        );
     }, []);
 
     const runCommand = React.useCallback((command: () => void) => {
         setOpen(false);
         command();
-    }, []);
+    }, [setOpen]);
 
     return (
         <CommandDialog open={open} onOpenChange={setOpen}>
-            <CommandInput placeholder="Type to search products..." />
-            <CommandList>
-                <CommandEmpty>{loading ? "Loading..." : "No results found."}</CommandEmpty>
-                
-                {products.length > 0 && (
-                    <CommandGroup heading="Products">
-                        {products.map((product) => (
-                            <CommandItem 
-                                key={product.id} 
-                                value={product.name}
-                                onSelect={() => runCommand(() => router.push(`/shop/${product.category.toLowerCase()}/${product.id}`))}
-                            >
-                                <Package className="mr-2 h-4 w-4" />
-                                <span>{product.name}</span>
-                                <span className="ml-auto text-xs text-muted-foreground uppercase">{product.category}</span>
-                            </CommandItem>
-                        ))}
-                    </CommandGroup>
-                )}
+            <DialogTitle className="sr-only">Search Store</DialogTitle>
+            <DialogDescription className="sr-only">
+                Search our catalog of clothing and accessories.
+            </DialogDescription>
+
+            {/* Single, built-in input for a native, smooth experience */}
+            <CommandInput placeholder="Search for clothes, shoes, hats..." />
+            
+            <CommandList className="max-h-[60vh] overflow-y-auto">
+                <CommandEmpty className="py-10 text-center text-sm text-slate-500">
+                    No products found.
+                </CommandEmpty>
+
+                <CommandGroup heading="Products">
+                    {allProducts.map((product) => (
+                        <CommandItem
+                            key={`${product.categoryRoute}-${product.id}`}
+                            value={product.name} // Native fuzzy search uses this value
+                            onSelect={() =>
+                                runCommand(() => router.push(`/shop/${product.categoryRoute}`))
+                            }
+                            className="flex items-center gap-4 p-3 cursor-pointer transition-colors hover:bg-slate-50 aria-selected:bg-slate-50"
+                        >
+                            <div className="relative h-12 w-12 overflow-hidden rounded-md bg-slate-100 shrink-0">
+                                <img
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                    className="object-cover h-full w-full"
+                                />
+                            </div>
+                            
+                            <div className="flex flex-col flex-1">
+                                <span className="font-medium text-slate-900">{product.name}</span>
+                                <span className="text-xs uppercase tracking-wider text-slate-500">
+                                    {product.categoryTitle}
+                                </span>
+                            </div>
+
+                            <div className="font-semibold text-slate-900 pr-2">
+                                ₵{product.price}
+                            </div>
+                        </CommandItem>
+                    ))}
+                </CommandGroup>
 
                 <CommandGroup heading="Quick Categories">
-                    <CommandItem onSelect={() => runCommand(() => router.push("/shop/mens"))}>Men's Clothing</CommandItem>
-                    <CommandItem onSelect={() => runCommand(() => router.push("/shop/womens"))}>Women's Clothing</CommandItem>
+                    {SHOP_DATA.map((category) => (
+                        <CommandItem
+                            key={category.id}
+                            value={`category ${category.title}`}
+                            onSelect={() => runCommand(() => router.push(`/shop/${category.routeName}`))}
+                            className="py-3 cursor-pointer"
+                        >
+                            View all {category.title}
+                        </CommandItem>
+                    ))}
                 </CommandGroup>
             </CommandList>
         </CommandDialog>

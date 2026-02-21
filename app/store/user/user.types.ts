@@ -12,3 +12,17 @@ export enum USER_ACTION_TYPES {
     SIGN_OUT_SUCCESS = 'user/SIGN_OUT_SUCCESS',
     SIGN_OUT_FAILED = 'user/SIGN_OUT_FAILED',
 };
+
+// Add this interface
+export type UserData = {
+    id: string;
+    displayName: string;
+    email: string;
+    username: string; // This fixes your "property does not exist" error
+    createdAt: any;
+    address?: string;
+    city?: string;
+    phoneNumber?: string;
+    clothingSize?: string;
+    stylePreference?: string;
+};

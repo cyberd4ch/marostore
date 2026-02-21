@@ -1,22 +1,34 @@
 "use client";
 
+import { useSelector } from "react-redux";
+import { selectWishlistItems } from "@/app/store/wishlist/wishlist.selector";
+import { selectCurrentUser } from "@/app/store/user/user.selector"; // Added this
+import ProductCard from "@/components/product-card/product-card.component";
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input } from "@/components/ui/input"; // Ensure you have this shadcn component
-import { Loader2, MapPin, Phone, Shirt, Instagram, User as UserIcon, Save, X, Edit2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Loader2, User as UserIcon, Save, X, Edit2, Heart, Share2, Check } from "lucide-react";
 
 const UserProfile = () => {
+    const router = useRouter();
     const { username } = useParams();
+    const [copied, setCopied] = useState(false);
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
-    // Local state for the form
+    // Redux Data
+    const wishlistItems = useSelector(selectWishlistItems);
+    const currentUser = useSelector(selectCurrentUser);
+
+    // Permission Check: Is this MY profile?
+    const isOwnProfile = currentUser && currentUser.username === username;
+
     const [editFields, setEditFields] = useState<any>({});
 
     useEffect(() => {
@@ -32,7 +44,7 @@ const UserProfile = () => {
                     const data = querySnapshot.docs[0].data();
                     const docId = querySnapshot.docs[0].id;
                     setUserData({ ...data, id: docId });
-                    setEditFields(data); // Sync local form state
+                    setEditFields(data);
                 }
             } catch (error) {
                 toast.error("Failed to load profile.");
@@ -43,6 +55,14 @@ const UserProfile = () => {
         fetchUserData();
     }, [username]);
 
+    const handleShare = () => {
+        const url = window.location.href;
+        navigator.clipboard.writeText(url);
+        setCopied(true);
+        toast.success("Profile link copied!");
+        setTimeout(() => setCopied(false), 2000);
+    };
+
     const handleSave = async () => {
         if (!userData?.id) return;
         setIsSaving(true);
@@ -51,7 +71,6 @@ const UserProfile = () => {
         try {
             const userDocRef = doc(db, "users", userData.id);
             await updateDoc(userDocRef, editFields);
-
             setUserData({ ...editFields, id: userData.id });
             setIsEditing(false);
             toast.success("Profile updated!", { id: loadingToast });
@@ -72,13 +91,22 @@ const UserProfile = () => {
 
     return (
         <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center font-sans antialiased">
-            <div className="w-full max-w-xl">
+            <div className="w-full max-w-xl relative">
 
                 {/* Profile Header */}
-                <div className="flex flex-col items-center mb-8 text-center">
+                <div className="flex flex-col items-center mb-8 text-center relative">
+                    {/* Share Button (Always Visible) */}
+                    <button
+                        onClick={handleShare}
+                        className="absolute right-0 top-0 p-3 bg-white rounded-full shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-90"
+                    >
+                        {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} className="text-slate-600" />}
+                    </button>
+
                     <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mb-4 shadow-xl">
                         <UserIcon className="h-12 w-12 text-white" />
                     </div>
+
                     {isEditing ? (
                         <Input
                             value={editFields.displayName}
@@ -97,14 +125,15 @@ const UserProfile = () => {
                         <div className="w-full bg-slate-50/50 px-8 py-6 border-b border-slate-100 flex justify-between items-center">
                             <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Profile Details</span>
                             {isEditing && (
-                                <div className="flex gap-2">
-                                    <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600 transition-colors"><X size={18} /></button>
-                                </div>
+                                <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600">
+                                    <X size={18} />
+                                </button>
                             )}
                         </div>
 
+                        {/* --- PREFERENCES SECTION --- */}
                         <div className="p-8 md:p-10 space-y-8">
-                            {/* Section: Lifestyle */}
+                            {/* Lifestyle Section */}
                             <div className="space-y-4">
                                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fashion Preferences</h2>
                                 <div className="grid grid-cols-2 gap-4">
@@ -119,7 +148,7 @@ const UserProfile = () => {
                                                 {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         ) : (
-                                            <p className="font-bold text-slate-900">{userData.clothingSize}</p>
+                                            <p className="font-bold text-slate-900">{userData.clothingSize || 'Not Set'}</p>
                                         )}
                                     </div>
                                     <div className="p-4 bg-slate-50 rounded-2xl">
@@ -131,13 +160,13 @@ const UserProfile = () => {
                                                 className="h-6 p-0 border-none bg-transparent font-bold text-slate-900 shadow-none focus-visible:ring-0"
                                             />
                                         ) : (
-                                            <p className="font-bold text-slate-900">{userData.stylePreference}</p>
+                                            <p className="font-bold text-slate-900">{userData.stylePreference || 'Casual'}</p>
                                         )}
                                     </div>
                                 </div>
                             </div>
 
-                            {/* Section: Delivery */}
+                            {/* Shipping Section */}
                             <div className="space-y-4">
                                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Shipping Details</h2>
                                 <div className="space-y-3">
@@ -145,44 +174,75 @@ const UserProfile = () => {
                                         <p className="text-[10px] text-slate-400 uppercase font-bold">Address & City</p>
                                         {isEditing ? (
                                             <div className="space-y-2">
-                                                <Input value={editFields.address} onChange={(e) => setEditFields({ ...editFields, address: e.target.value })} className="h-8 text-sm" />
-                                                <Input value={editFields.city} onChange={(e) => setEditFields({ ...editFields, city: e.target.value })} className="h-8 text-sm" />
+                                                <Input value={editFields.address} onChange={(e) => setEditFields({ ...editFields, address: e.target.value })} placeholder="Address" className="h-8 text-sm" />
+                                                <Input value={editFields.city} onChange={(e) => setEditFields({ ...editFields, city: e.target.value })} placeholder="City" className="h-8 text-sm" />
                                             </div>
                                         ) : (
-                                            <p className="font-semibold text-slate-900">{userData.address}, {userData.city}</p>
-                                        )}
-                                    </div>
-                                    <div className="p-4 border border-slate-100 rounded-2xl">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Phone</p>
-                                        {isEditing ? (
-                                            <Input value={editFields.phoneNumber} onChange={(e) => setEditFields({ ...editFields, phoneNumber: e.target.value })} className="h-8 text-sm" />
-                                        ) : (
-                                            <p className="font-semibold text-slate-900">{userData.phoneNumber}</p>
+                                            <p className="font-semibold text-slate-900">
+                                                {userData.address ? `${userData.address}, ${userData.city}` : 'No address saved'}
+                                            </p>
                                         )}
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Footer Action */}
-                        <div className="p-6 bg-slate-900">
-                            {isEditing ? (
-                                <button
-                                    onClick={handleSave}
-                                    disabled={isSaving}
-                                    className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
-                                >
-                                    {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <><Save size={16} /> Save Preferences</>}
-                                </button>
+                        {/* --- WISHLIST SECTION (The one you wanted to keep) --- */}
+                        <div className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
+                            <div className="flex items-center justify-between mb-6">
+                                <div className="space-y-1">
+                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
+                                    <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
+                                </div>
+                                <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
+                            </div>
+
+                            {wishlistItems.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    {wishlistItems.slice(0, 4).map((product: any) => (
+                                        <div key={product.id} className="scale-95 origin-top">
+                                            {/* compact prop passed here */}
+                                            <ProductCard product={product} compact={true} />
+                                        </div>
+                                    ))}
+                                </div>
                             ) : (
+                                <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
+                                    <p className="text-sm text-slate-400">No items in wishlist yet.</p>
+                                </div>
+                            )}
+
+                            {wishlistItems.length > 4 && (
                                 <button
-                                    onClick={() => setIsEditing(true)}
-                                    className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                    onClick={() => router.push('/wishlist')}
+                                    className="w-full mt-6 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
                                 >
-                                    <Edit2 size={16} /> Edit Shopping Preferences
+                                    View All {wishlistItems.length} Items
                                 </button>
                             )}
                         </div>
+
+                        {/* Footer Action - Only visible to the owner */}
+                        {isOwnProfile && (
+                            <div className="p-6 bg-slate-900">
+                                {isEditing ? (
+                                    <button
+                                        onClick={handleSave}
+                                        disabled={isSaving}
+                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
+                                    >
+                                        {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <><Save size={16} /> Save Preferences</>}
+                                    </button>
+                                ) : (
+                                    <button
+                                        onClick={() => setIsEditing(true)}
+                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                    >
+                                        <Edit2 size={16} /> Edit Shopping Preferences
+                                    </button>
+                                )}
+                            </div>
+                        )}
                     </CardContent>
                 </Card>
             </div>

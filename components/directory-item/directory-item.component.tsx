@@ -21,7 +21,10 @@ const DirectoryItem: FC<DirectoryItemProps> = ({ category }) => {
 
     return (
         <DirectoryItemContainer onClick={onNavigateHandler}>
-            <BackgroundImage imageUrl={imageUrl} />
+            <div
+                className="background-image"
+                style={{ backgroundImage: `url(${imageUrl})` }}
+            />
             <Body>
                 <h2>{title}</h2>
                 <p>Shop Now</p>

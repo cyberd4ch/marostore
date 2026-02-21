@@ -1,114 +1,129 @@
 'use client';
 
 import { useState } from 'react';
-import { Product } from '@/services/productService';
+import { useDispatch, useSelector } from 'react-redux';
+import { addItemToCart } from '@/app/store/cart/cart.action';
+import { selectCartItems } from '@/app/store/cart/cart.selector';
+import { toggleItemInWishlist } from '@/app/store/wishlist/wishlist.action';
+import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from '@/components/ui/select';
-import { Minus, Plus, ShoppingCart } from 'lucide-react';
+import { ShoppingCart, Heart, Truck, RefreshCcw } from 'lucide-react';
+import { toast } from 'sonner';
+import { cn } from '@/lib/utils';
 
-interface AddToCartProps {
-    product: Product;
-}
+export default function AddToCart({ product }: { product: any }) {
+    const dispatch = useDispatch();
+    const cartItems = useSelector(selectCartItems);
+    const wishlistItems = useSelector(selectWishlistItems);
+    
+    // Mock sizes and colors for UI (you can map this to your actual data if available)
+    const sizes = ['XS', 'S', 'M', 'L', 'XL'];
+    const colors = ['#000000', '#16a34a', '#f97316', '#e2e8f0', '#3b82f6']; // Black, Green, Orange, Light Gray, Blue
+    
+    const [selectedSize, setSelectedSize] = useState<string>('L');
+    const [selectedColor, setSelectedColor] = useState<string>(colors[0]);
 
-// Mock color options based on category
-const getColorOptions = (category: string) => {
-    if (category.includes('women')) {
-        return ['Black', 'White', 'Red', 'Blue', 'Pink'];
-    }
-    return ['Black', 'Navy', 'Gray', 'Olive'];
-};
+    const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
 
-export default function AddToCart({ product }: AddToCartProps) {
-    const [quantity, setQuantity] = useState(1);
-    const [selectedColor, setSelectedColor] = useState<string>('');
-    const colorOptions = getColorOptions(product.category);
-
-    const increment = () => setQuantity((q) => q + 1);
-    const decrement = () => setQuantity((q) => Math.max(1, q - 1));
+    const itemToAdd = {
+        id: product.id,
+        name: product.title,
+        price: product.price,
+        imageUrl: product.image
+    };
 
     const handleAddToCart = () => {
-        // Here you would dispatch to cart store / context
-        console.log('Added to cart:', {
-            product,
-            quantity,
-            color: selectedColor || 'Default',
-        });
-        // Show toast notification (use sonner or similar)
-        alert(`Added ${quantity} item(s) to cart`);
+        dispatch(addItemToCart(cartItems, itemToAdd));
+        toast.success(`${product.title} added to cart!`, { description: `Size: ${selectedSize}` });
+    };
+
+    const handleToggleWishlist = () => {
+        dispatch(toggleItemInWishlist(wishlistItems, itemToAdd));
+        isFavorite ? toast.info("Removed from wishlist") : toast.success("Added to wishlist");
     };
 
     return (
-        <div className="space-y-6">
-            {/* Color selection */}
-            <div className="space-y-2">
-                <Label htmlFor="color">Color</Label>
-                <Select value={selectedColor} onValueChange={setSelectedColor}>
-                    <SelectTrigger id="color" className="w-full">
-                        <SelectValue placeholder="Select a color" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        {colorOptions.map((color) => (
-                            <SelectItem key={color} value={color}>
-                                <div className="flex items-center gap-2">
-                                    <span
-                                        className="w-4 h-4 rounded-full border"
-                                        style={{ backgroundColor: color.toLowerCase() }}
-                                    />
-                                    {color}
-                                </div>
-                            </SelectItem>
-                        ))}
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Quantity selector */}
-            <div className="space-y-2">
-                <Label htmlFor="quantity">Quantity</Label>
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={decrement}
-                        disabled={quantity <= 1}
-                    >
-                        <Minus className="h-4 w-4" />
-                    </Button>
-                    <Input
-                        id="quantity"
-                        type="number"
-                        min={1}
-                        value={quantity}
-                        onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                        className="w-20 text-center"
-                    />
-                    <Button variant="outline" size="icon" onClick={increment}>
-                        <Plus className="h-4 w-4" />
-                    </Button>
+        <div className="flex flex-col space-y-8">
+            {/* Color Selection */}
+            <div className="flex items-center gap-4">
+                <span className="font-semibold text-slate-900 min-w-[100px]">Jacket Color :</span>
+                <div className="flex gap-3">
+                    {colors.map((color) => (
+                        <button
+                            key={color}
+                            onClick={() => setSelectedColor(color)}
+                            className={cn(
+                                "w-6 h-6 rounded-full ring-2 ring-offset-2 transition-all",
+                                selectedColor === color ? "ring-slate-900" : "ring-transparent hover:scale-110"
+                            )}
+                            style={{ backgroundColor: color }}
+                            aria-label={`Select color ${color}`}
+                        />
+                    ))}
                 </div>
             </div>
 
-            {/* Add to cart button */}
-            <Button
-                size="lg"
-                className="w-full bg-primary text-primary-foreground hover:bg-primary/90"
-                onClick={handleAddToCart}
-                disabled={!selectedColor}
-            >
-                <ShoppingCart className="mr-2 h-5 w-5" />
-                Add to Cart – ${(product.price * quantity).toFixed(2)}
-            </Button>
-            <p className="text-xs text-muted-foreground text-center">
-                Free shipping on orders over $50
-            </p>
+            {/* Size Selection */}
+            <div className="flex items-center gap-4">
+                <span className="font-semibold text-slate-900 min-w-[100px]">Jacket Size :</span>
+                <div className="flex flex-wrap gap-2">
+                    {sizes.map((size) => (
+                        <button
+                            key={size}
+                            onClick={() => setSelectedSize(size)}
+                            className={cn(
+                                "h-10 w-10 sm:h-12 sm:w-12 rounded-md border text-sm font-medium transition-all flex items-center justify-center",
+                                selectedSize === size 
+                                    ? "bg-slate-900 text-white border-slate-900" 
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                            )}
+                        >
+                            {size}
+                        </button>
+                    ))}
+                </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-4 pt-2">
+                <Button 
+                    className="h-14 bg-[#111111] hover:bg-black text-white rounded-md font-medium text-base"
+                    onClick={handleAddToCart}
+                >
+                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    Add to Cart
+                </Button>
+                
+                <Button 
+                    variant="outline" 
+                    className="h-14 bg-[#F5F5F5] hover:bg-[#E5E5E5] border-none text-slate-900 rounded-md font-medium text-base"
+                    onClick={handleToggleWishlist}
+                >
+                    <Heart className={cn("w-5 h-5 mr-2 transition-colors", isFavorite && "fill-slate-900")} />
+                    Wish List
+                </Button>
+            </div>
+
+            {/* Delivery Info Box */}
+            <div className="border border-slate-200 rounded-md flex flex-col mt-4">
+                <div className="flex items-start gap-4 p-4 sm:p-5 border-b border-slate-200">
+                    <Truck className="w-6 h-6 text-slate-700 shrink-0 mt-1" />
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-slate-900">Free Delivery</span>
+                        <span className="text-sm text-slate-500 mt-1 underline cursor-pointer hover:text-slate-800">Enter your postal code for delivery Availability</span>
+                    </div>
+                </div>
+                <div className="flex items-start gap-4 p-4 sm:p-5">
+                    <RefreshCcw className="w-6 h-6 text-slate-700 shrink-0 mt-1" />
+                    <div className="flex flex-col">
+                        <span className="font-semibold text-slate-900">Return Delivery</span>
+                        <span className="text-sm text-slate-500 mt-1">
+                            Free 30 Days Delivery Returns. <span className="underline font-medium cursor-pointer text-slate-900 hover:text-black">Details</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 }
