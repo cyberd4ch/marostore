@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
@@ -9,10 +9,19 @@ import Image from 'next/image';
 import Directory from '@/components/directory/directory.component';
 import DealsSection from '@/components/home/DealsSection';
 import { fetchCategoriesStart } from '@/app/store/categories/category.action';
+import { selectCategoriesMap } from '@/app/store/categories/category.selector';
 import TrendingWearSection from '@/components/home/TrendingWearSection';
+import CategoryShowcase from '@/components/home/CategoryShowcase';
 
 export default function HomePage() {
   const dispatch = useDispatch();
+
+  const categoriesMap = useSelector(selectCategoriesMap);
+
+  const categoriesArray = Object.keys(categoriesMap).map((title) => ({
+    title,
+    items: categoriesMap[title],
+  }));
 
   useEffect(() => {
     dispatch(fetchCategoriesStart());
@@ -67,9 +76,15 @@ export default function HomePage() {
       <section className="py-24 bg-white border-y border-slate-100">
           <DealsSection />
       </section>
+
             <section className="py-24 bg-white border-y border-slate-100">
           <TrendingWearSection />
       </section>
+
+            <section className="py-24 bg-white border-y border-slate-100">
+          <CategoryShowcase categories={categoriesArray}/>
+      </section>
+      
 
       {/* SECTION 3: DIRECTORY (Categories) */}
       <section className="py-24">
