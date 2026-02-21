@@ -3,7 +3,7 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
-import Image from 'next/image';
+// Removed 'next/image' import since we are using text now
 import { useSelector, useDispatch } from 'react-redux';
 import { Search, User as UserIcon } from 'lucide-react';
 import { SearchCommand } from '@/components/search-command/search-command';
@@ -14,7 +14,6 @@ import { NavMenu } from '@/components/nav-menu/nav-menu';
 import { NavigationSheet } from '@/components/navigation-sheet/navigation-sheet';
 
 import { selectWishlistCount } from '@/app/store/wishlist/wishlist.selector';
-
 import { selectIsCartOpen } from '@/app/store/cart/cart.selector';
 import { selectCurrentUser } from '@/app/store/user/user.selector';
 import { signOutStart } from '@/app/store/user/user.action';
@@ -44,24 +43,14 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
     return (
         <Fragment>
-            {/* Floating Navbar Aesthetic: 
-              fixed, inset-x-4 (margin on sides), top-6 (margin from top), 
-              rounded-full, glassmorphism (bg-white/90 + backdrop-blur)
-            */}
+            {/* Floating Navbar Aesthetic */}
             <header className="fixed inset-x-4 top-4 z-50 mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-slate-200 bg-white/90 px-4 shadow-sm backdrop-blur-md md:px-8">
 
-                {/* Left: Logo */}
-                <Link href="/" className="flex shrink-0 items-center pl-2">
-                    <div className="relative h-14 w-40 md:w-64 transition-transform hover:scale-[2.2] active:scale-[2.1]">
-                        <Image
-                            src="/logo.png"
-                            alt="Marostore Logo"
-                            fill
-                            priority
-                            sizes="(max-width: 768px) 160px, 208px"
-                            className="object-contain object-left"
-                        />
-                    </div>
+                {/* Left: Text Logo */}
+                <Link href="/" className="flex shrink-0 items-center">
+                    <span className="text-2xl font-extrabold tracking-tighter text-slate-900 transition-colors hover:text-slate-700 md:text-3xl">
+                        marostore
+                    </span>
                 </Link>
 
                 {/* Center: Desktop Navigation Links (shadcn) */}
@@ -72,7 +61,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                 {/* Right: Icons & Actions */}
                 <div className="flex items-center gap-4 lg:gap-6 shrink-0">
 
-                    {/* Optional: Search Icon to match reference images */}
+                    {/* Search Icon */}
                     <button
                         onClick={() => setIsSearchOpen(true)}
                         className="hidden md:flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors bg-slate-100/50 hover:bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200/60"
@@ -115,7 +104,6 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                     {/* Cart Icon & Dropdown Container */}
                     <div className="relative flex items-center">
                         <CartIcon />
-                        {/* Position dropdown directly below the floating pill */}
                         {isCartOpen && (
                             <div className="absolute right-0 top-[calc(100%+1.5rem)] w-[320px]">
                                 <CartDropdown />
@@ -132,7 +120,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
             <SearchCommand open={isSearchOpen} setOpen={setIsSearchOpen} />
 
-            {/* Content Wrapper: Added pt-28 (padding-top) so the floating navbar doesn't cover page content */}
+            {/* Content Wrapper */}
             <main className="pt-28 min-h-screen bg-slate-50/50">
                 {children}
             </main>
