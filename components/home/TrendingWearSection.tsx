@@ -2,9 +2,10 @@
 
 import { useRef, useMemo } from 'react';
 import Image from 'next/image';
+import Link from 'next/link'; // Added Link for navigation
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { ChevronLeft, ChevronRight, Heart, Star, ShoppingCart, Zap } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Heart, Star, ShoppingCart, Zap, ArrowRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 import SHOP_DATA from '@/app/utils/shop/shop-data';
@@ -26,28 +27,20 @@ export default function TrendingWearSection() {
     const dispatch = useDispatch();
     const router = useRouter();
 
-    // Redux Selectors
     const cartItems = useSelector(selectCartItems);
     const wishlistItems = useSelector(selectWishlistItems);
 
-    /**
-     * Logic: Round-Robin Selection
-     * Takes one item from each category sequentially to ensure visual variety.
-     */
     const trendingProducts = useMemo(() => {
         const categories = Object.values(SHOP_DATA as any).map((cat: any) => cat.items);
         const result: ShopItem[] = [];
         const maxItems = 12;
         let itemIndex = 0;
 
-        // Loop until we reach 12 items or run out of products entirely
         while (result.length < maxItems) {
             let foundInThisRound = false;
-
             for (const items of categories) {
                 if (items[itemIndex]) {
                     const product = items[itemIndex];
-                    // Apply your price filter
                     if (product.price < 100) {
                         result.push(product);
                     }
@@ -55,14 +48,12 @@ export default function TrendingWearSection() {
                 }
                 if (result.length >= maxItems) break;
             }
-
             if (!foundInThisRound) break; 
             itemIndex++;
         }
         return result;
     }, []);
 
-    // --- HANDLERS ---
     const handleAddToCart = (product: ShopItem) => {
         dispatch(addItemToCart(cartItems, product as any));
         toast.success(`${product.name} added to cart`);
@@ -95,21 +86,33 @@ export default function TrendingWearSection() {
     return (
         <div className="max-w-7xl mx-auto px-4 py-12">
             {/* Header */}
-            <div className="flex items-center justify-between mb-8">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
                 <div>
                     <h2 className="text-3xl font-bold text-slate-900 tracking-tight">Trending Wear</h2>
-                    <p className="text-slate-500 text-sm mt-1">A curated mix from all our collections</p>
+                    <div className="flex items-center gap-3 mt-1">
+                        <p className="text-slate-500 text-sm">A curated mix from all our collections</p>
+                        <span className="hidden md:block w-1 h-1 bg-slate-300 rounded-full" />
+                        <Link 
+                            href="/shop" 
+                            className="group flex items-center gap-1 text-sm font-bold text-orange-600 hover:text-orange-700 transition-colors"
+                        >
+                            View All
+                            <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+                        </Link>
+                    </div>
                 </div>
-                <div className="flex gap-2">
+
+                {/* Navigation Buttons */}
+                <div className="flex gap-2 self-end md:self-auto">
                     <button 
                         onClick={() => scroll('left')} 
-                        className="p-2 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors active:scale-95"
+                        className="p-2.5 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors active:scale-95"
                     >
                         <ChevronLeft className="w-5 h-5" />
                     </button>
                     <button 
                         onClick={() => scroll('right')} 
-                        className="p-2 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors active:scale-95"
+                        className="p-2.5 border border-slate-200 rounded-full hover:bg-slate-100 transition-colors active:scale-95"
                     >
                         <ChevronRight className="w-5 h-5" />
                     </button>
@@ -127,7 +130,6 @@ export default function TrendingWearSection() {
                     
                     return (
                         <div key={product.id} className="min-w-[280px] lg:min-w-[320px] snap-start group">
-                            {/* Image Container */}
                             <div className="relative aspect-[4/5] bg-[#F8F8F8] rounded-2xl overflow-hidden mb-4 shadow-sm">
                                 {product.price > 70 && (
                                     <div className="absolute top-4 left-4 bg-orange-500 text-white text-[10px] font-bold px-2.5 py-1 rounded-full z-10 shadow-sm">
@@ -143,7 +145,6 @@ export default function TrendingWearSection() {
                                     className="object-cover group-hover:scale-105 transition-transform duration-700 ease-out"
                                 />
 
-                                {/* Favorite Button */}
                                 <button 
                                     onClick={() => handleToggleFavorite(product)}
                                     className="absolute top-4 right-4 p-2.5 bg-white/90 backdrop-blur-sm rounded-full shadow-md hover:bg-white transition-all z-10 active:scale-90"
@@ -156,7 +157,6 @@ export default function TrendingWearSection() {
                                     />
                                 </button>
 
-                                {/* Action Overlay */}
                                 <div className="absolute inset-x-4 bottom-4 translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 z-20">
                                     <div className="flex gap-2">
                                         <button 
@@ -177,7 +177,6 @@ export default function TrendingWearSection() {
                                 <div className="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
                             </div>
 
-                            {/* Details */}
                             <div className="px-1">
                                 <div className="flex justify-between items-start mb-1">
                                     <h3 className="text-slate-800 font-semibold text-lg line-clamp-1">{product.name}</h3>
