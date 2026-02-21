@@ -16,8 +16,11 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+import { selectCurrentUser } from '../store/user/user.selector';
+
 const PaymentPage = () => {
     const cartItems = useSelector(selectCartItems);
+    const currentUser = useSelector(selectCurrentUser);
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
     const [momoNumber, setMomoNumber] = useState('');
@@ -27,6 +30,8 @@ const PaymentPage = () => {
     const totalPayable = cartTotal + shippingCost;
 
     const handlePayment = useCallback(async () => {
+        const userEmail = currentUser?.email || 'guest@example.com';
+
         if (cartItems.length === 0) {
             toast.error("Your cart is empty");
             return;
@@ -38,8 +43,17 @@ const PaymentPage = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    email: 'customer@example.com', // Replace with dynamic user email if available
+                    email: userEmail,
                     amount: totalPayable,
+                    metadata: {
+                        custom_fields: [
+                            {
+                                display_name: "Mobile Number",
+                                variable_name: "mobile_number",
+                                value: momoNumber
+                            }
+                        ]
+                    }
                 }),
             });
 
