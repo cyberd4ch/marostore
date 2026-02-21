@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils';
 import SHOP_DATA from '@/app/utils/shop/shop-data'; 
 import { addItemToCart } from '@/app/store/cart/cart.action';
 import { selectCartItems } from '@/app/store/cart/cart.selector';
+import { EasterCountdown } from '@/components/countdown/EasterCountdown';
 
 // --- ADD THESE INTERFACES BACK AT THE TOP ---
 interface ShopItem {
@@ -61,7 +62,7 @@ export default function DealsSection() {
                         Deals Of The Day
                     </h3>
                     <div className="bg-red-600 text-white font-mono px-3 py-1 rounded-sm text-xs flex gap-2">
-                        <span>1D</span> : <span>12H</span> : <span>11M</span> : <span>53S</span>
+                        <EasterCountdown />
                     </div>
                 </div>
                 <Link href="/shop" className="text-xs font-bold underline underline-offset-4 uppercase tracking-widest text-slate-400 hover:text-slate-900 transition-colors">
