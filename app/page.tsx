@@ -9,6 +9,7 @@ import Image from 'next/image';
 import Directory from '@/components/directory/directory.component';
 import DealsSection from '@/components/home/DealsSection';
 import { fetchCategoriesStart } from '@/app/store/categories/category.action';
+import TrendingWearSection from '@/components/home/TrendingWearSection';
 
 export default function HomePage() {
   const dispatch = useDispatch();
@@ -65,6 +66,9 @@ export default function HomePage() {
       {/* SECTION 2: DEALS OF THE DAY (With proper white space) */}
       <section className="py-24 bg-white border-y border-slate-100">
           <DealsSection />
+      </section>
+            <section className="py-24 bg-white border-y border-slate-100">
+          <TrendingWearSection />
       </section>
 
       {/* SECTION 3: DIRECTORY (Categories) */}
