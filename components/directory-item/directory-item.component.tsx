@@ -1,18 +1,12 @@
 'use client';
 
-import { useNavigate } from 'react-router-dom'; // or 'next/navigation' depending on your setup
-import {
-    DirectoryItemContainer,
-    BackgroundImage,
-    Body,
-    CategoryTitle
-} from './directory-item.styles';
+import { useRouter } from 'next/navigation'; 
+import { DirectoryItemContainer, BackgroundImage, Body, CategoryTitle } from './directory-item.styles';
 
 const DirectoryItem = ({ category }: { category: any }) => {
     const { imageUrl, title, route } = category;
-    const navigate = useNavigate();
-
-    const onNavigateHandler = () => navigate(route);
+    const router = useRouter();
+    const onNavigateHandler = () => router.push(`/${route}`);
 
     return (
         <DirectoryItemContainer onClick={onNavigateHandler}>
