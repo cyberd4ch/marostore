@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button } from '@/components/ui/button';
-import { Timer, ArrowRight } from 'lucide-react';
+import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Directory from '@/components/directory/directory.component';
-import DealsSection from '@/components/home/DealsSection'; // We will create this
+import DealsSection from '@/components/home/DealsSection';
 import { fetchCategoriesStart } from '@/app/store/categories/category.action';
 
 export default function HomePage() {
@@ -19,57 +19,65 @@ export default function HomePage() {
 
   return (
     <main className="min-h-screen bg-white">
-      {/* Redesigned Hero Section */}
-      <section className="relative h-[85vh] md:h-[90vh] flex flex-col">
-        {/* Background Images Layer */}
-        <div className="absolute inset-0 z-0 flex flex-col lg:flex-row overflow-hidden">
-          <div className="relative w-full lg:w-1/2 h-full opacity-30 lg:opacity-100">
+      {/* SECTION 1: CLEAN MINIMALIST HERO */}
+      <section className="relative w-full h-[70vh] flex items-center overflow-hidden bg-slate-50">
+        <div className="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center z-10">
+          <div className="text-left space-y-8">
+            <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">
+              <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
+              <span className="text-xs font-bold uppercase tracking-wider text-slate-600">New Season Drop</span>
+            </div>
+            
+            <h1 className="text-6xl md:text-8xl font-black text-slate-900 leading-[0.85] tracking-tighter">
+              WEAR <br /> BETTER.
+            </h1>
+            
+            <p className="text-slate-500 text-lg md:text-xl max-w-md leading-relaxed">
+              Experience premium quality and timeless style with Maro Store’s exclusive collection.
+            </p>
+            
+            <div className="flex items-center gap-4">
+              <Button asChild size="lg" className="rounded-none h-14 px-10 bg-slate-900 hover:bg-black transition-all">
+                <Link href="/shop">SHOP NOW</Link>
+              </Button>
+              <Link href="/shop" className="group flex items-center font-bold text-sm tracking-widest uppercase">
+                Explore <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
+              </Link>
+            </div>
+          </div>
+
+          <div className="hidden lg:block relative h-[60vh] w-full">
             <Image
               src="/bgg.png"
               alt="Fashion background"
               fill
-              className="object-cover"
+              className="object-contain object-right"
               priority
             />
           </div>
-          <div className="hidden lg:block w-1/2 h-full bg-slate-50" />
         </div>
-
-        {/* Hero Content Overlay */}
-        <div className="relative z-10 flex flex-col items-center justify-center pt-20 pb-10 px-4 text-center">
-          <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-6 animate-pulse">
-            Season Sale
-          </span>
-          <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight max-w-4xl leading-[0.9]">
-            Wear Better, <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500">Look Better.</span>
-          </h1>
-          <p className="text-slate-500 text-lg md:text-xl mb-10 max-w-lg mx-auto">
-            Experience premium quality and timeless style with Maro Store’s exclusive collection. Classy clothes for classy people.
-          </p>
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button asChild size="lg" className="rounded-full h-14 px-8 bg-slate-900 text-white hover:bg-slate-800 text-base shadow-xl shadow-slate-200">
-              <Link href="/shop">Shop Collection <ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-            <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-slate-200 text-base">
-              New Arrivals
-            </Button>
-          </div>
-        </div>
-
-        {/* Integrated Deals Section - Overlapping the Hero Bottom */}
-        <div className="mt-auto pb-12">
-          <DealsSection />
+        {/* Subtle background text */}
+        <div className="absolute bottom-0 right-0 text-[20vw] font-black text-slate-200/50 leading-none select-none translate-y-1/4">
+          MARO
         </div>
       </section>
 
-      {/* Directory Section (Categories) */}
-      <section className="py-24 bg-slate-50/50">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-12">
-            <h2 className="text-3xl font-bold text-slate-900">Browse Categories</h2>
-            <Link href="/shop" className="text-sm font-bold text-slate-500 hover:text-slate-900 underline underline-offset-4">View All</Link>
+      {/* SECTION 2: DEALS OF THE DAY (With proper white space) */}
+      <section className="py-24 bg-white border-y border-slate-100">
+          <DealsSection />
+      </section>
+
+      {/* SECTION 3: DIRECTORY (Categories) */}
+      <section className="py-24">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col items-center text-center mb-16">
+            <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">The Collections</h2>
+            <div className="h-1 w-12 bg-slate-900 mt-4" />
           </div>
-          <Directory />
+          {/* We wrap the Styled Component Directory to control its layout better */}
+          <div className="w-full">
+            <Directory />
+          </div>
         </div>
       </section>
     </main>
