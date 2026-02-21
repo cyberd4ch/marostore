@@ -1,13 +1,13 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { Button } from '@/components/ui/button';
-import { CirclePlay } from 'lucide-react';
-import { BackgroundPattern } from '@/components/background-pattern';
+import { Timer, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
 import Directory from '@/components/directory/directory.component';
+import DealsSection from '@/components/home/DealsSection'; // We will create this
 import { fetchCategoriesStart } from '@/app/store/categories/category.action';
 
 export default function HomePage() {
@@ -18,56 +18,60 @@ export default function HomePage() {
   }, [dispatch]);
 
   return (
-    <>
-      {/* Hero Section (from your original page.tsx) */}
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="absolute inset-0 flex flex-col lg:flex-row">
-          <div className="relative w-full lg:w-1/2 h-1/2 lg:h-full">
+    <main className="min-h-screen bg-white">
+      {/* Redesigned Hero Section */}
+      <section className="relative h-[85vh] md:h-[90vh] flex flex-col">
+        {/* Background Images Layer */}
+        <div className="absolute inset-0 z-0 flex flex-col lg:flex-row overflow-hidden">
+          <div className="relative w-full lg:w-1/2 h-full opacity-30 lg:opacity-100">
             <Image
               src="/bgg.png"
-              alt="Hero background"
-              width={1920}
-              height={1080}
-              className="w-full h-full object-cover"
+              alt="Fashion background"
+              fill
+              className="object-cover"
+              priority
             />
           </div>
-          <div className="relative w-full lg:w-1/2 h-1/2 lg:h-full">
-            <BackgroundPattern />
-          </div>
+          <div className="hidden lg:block w-1/2 h-full bg-slate-50" />
         </div>
-        <div className="relative z-10 text-center px-4 py-16">
-          <h1 className="text-4xl font-bold text-primary mb-4 tracking-tighter sm:text-5xl md:text-6xl md:leading-[1.2] lg:text-7xl">
-            Online Shopping - Maro's Collection
-          </h1>
-          <div className="space-x-4">
-            <p className="bg-secondary/10 text-foreground/90 md:text-lg mb-4 mt-4 px-6 py-3 rounded-full inline-block">
-              Wear better, look better. <br />
-              Don't you just love being in classy clothes?
-            </p>
-            <div className="mt-12 flex items-center justify-center gap-4">
-              <Button
-                asChild
-                className="bg-secondary rounded-full text-background px-6 py-3 font-medium hover:bg-secondary/80 transition-colors"
-                size="lg"
-              >
-                <Link href="/shop">Shop Now</Link>
-              </Button>
-              <Button
-                className="rounded-full text-base shadow-none"
-                size="lg"
-                variant="outline"
-              >
-                <CirclePlay className="h-5! w-5!" /> Follow our TikTok
-              </Button>
-            </div>
-          </div>
-        </div>
-      </div>
 
-      {/* Directory Section (categories) */}
-      <section className="py-16">
-        <Directory />
+        {/* Hero Content Overlay */}
+        <div className="relative z-10 flex flex-col items-center justify-center pt-20 pb-10 px-4 text-center">
+          <span className="bg-red-600 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-6 animate-pulse">
+            Season Sale
+          </span>
+          <h1 className="text-5xl md:text-7xl font-black text-slate-900 mb-6 tracking-tight max-w-4xl leading-[0.9]">
+            Wear Better, <br /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-500">Look Better.</span>
+          </h1>
+          <p className="text-slate-500 text-lg md:text-xl mb-10 max-w-lg mx-auto">
+            Experience premium quality and timeless style with Maro Store’s exclusive collection. Classy clothes for classy people.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button asChild size="lg" className="rounded-full h-14 px-8 bg-slate-900 text-white hover:bg-slate-800 text-base shadow-xl shadow-slate-200">
+              <Link href="/shop">Shop Collection <ArrowRight className="ml-2 h-4 w-4" /></Link>
+            </Button>
+            <Button variant="outline" size="lg" className="rounded-full h-14 px-8 border-slate-200 text-base">
+              New Arrivals
+            </Button>
+          </div>
+        </div>
+
+        {/* Integrated Deals Section - Overlapping the Hero Bottom */}
+        <div className="mt-auto pb-12">
+          <DealsSection />
+        </div>
       </section>
-    </>
+
+      {/* Directory Section (Categories) */}
+      <section className="py-24 bg-slate-50/50">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex items-center justify-between mb-12">
+            <h2 className="text-3xl font-bold text-slate-900">Browse Categories</h2>
+            <Link href="/shop" className="text-sm font-bold text-slate-500 hover:text-slate-900 underline underline-offset-4">View All</Link>
+          </div>
+          <Directory />
+        </div>
+      </section>
+    </main>
   );
 }
