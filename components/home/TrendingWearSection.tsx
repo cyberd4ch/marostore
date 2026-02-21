@@ -38,7 +38,7 @@ export default function TrendingWearSection() {
             {/* Header Section */}
             <div className="flex items-center justify-between mb-8">
                 <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">
-                    Trending In Western Wear
+                    Trending Wear
                 </h2>
                 <div className="flex gap-2">
                     <button 
