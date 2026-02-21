@@ -52,7 +52,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
                 {/* Left: Logo */}
                 <Link href="/" className="flex shrink-0 items-center pl-2">
-                    <div className="relative h-12 w-40 md:w-52 transition-transform hover:scale-105 active:scale-95">
+                    <div className="relative h-14 w-40 md:w-64 transition-transform hover:scale-[2.2] active:scale-[2.1]">
                         <Image
                             src="/logo.png"
                             alt="Marostore Logo"
