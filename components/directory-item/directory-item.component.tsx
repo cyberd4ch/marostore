@@ -1,33 +1,27 @@
-import { FC } from 'react';
-import { useRouter } from 'next/navigation';
+'use client';
 
-import { DirectoryCategory } from '../directory/directory.component';
-
+import { useNavigate } from 'react-router-dom'; // or 'next/navigation' depending on your setup
 import {
+    DirectoryItemContainer,
     BackgroundImage,
     Body,
-    DirectoryItemContainer,
+    CategoryTitle
 } from './directory-item.styles';
 
-type DirectoryItemProps = {
-    category: DirectoryCategory;
-};
-
-const DirectoryItem: FC<DirectoryItemProps> = ({ category }) => {
+const DirectoryItem = ({ category }: { category: any }) => {
     const { imageUrl, title, route } = category;
-    const router = useRouter();
+    const navigate = useNavigate();
 
-    const onNavigateHandler = () => router.push(route);
+    const onNavigateHandler = () => navigate(route);
 
     return (
         <DirectoryItemContainer onClick={onNavigateHandler}>
-            <div
-                className="background-image"
-                style={{ backgroundImage: `url(${imageUrl})` }}
-            />
+            <BackgroundImage imageUrl={imageUrl} />
             <Body>
-                <h2>{title}</h2>
-                <p>Shop Now</p>
+                <CategoryTitle>{title}</CategoryTitle>
+                <p className="text-[10px] tracking-[0.2em] uppercase font-bold text-slate-400 group-hover:text-slate-900 transition-colors">
+                    Explore Collection
+                </p>
             </Body>
         </DirectoryItemContainer>
     );
