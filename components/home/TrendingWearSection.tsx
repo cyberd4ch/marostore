@@ -102,11 +102,11 @@ export default function TrendingWearSection() {
                             
                             <div className="flex items-center gap-2">
                                 <span className="text-xl font-bold text-slate-900">
-                                    ${product.price}.00
+                                    ₵{product.price}.00
                                 </span>
                                 {product.price > 70 && (
                                     <span className="text-sm text-slate-400 line-through">
-                                        ${product.price + 20}.00
+                                        ₵{product.price + 20}.00
                                     </span>
                                 )}
                             </div>
