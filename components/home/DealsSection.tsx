@@ -6,13 +6,17 @@ import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
 import { Heart, ShoppingBag, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner'; // Assuming you use sonner for notifications like the other component
 
 import SHOP_DATA from '@/app/utils/shop/shop-data'; 
 import { addItemToCart } from '@/app/store/cart/cart.action';
 import { selectCartItems } from '@/app/store/cart/cart.selector';
 import { EasterCountdown } from '@/components/countdown/EasterCountdown';
 
-// --- ADD THESE INTERFACES BACK AT THE TOP ---
+// --- NEW IMPORTS FOR WISHLIST ---
+import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
+import { toggleItemInWishlist } from '@/app/store/wishlist/wishlist.action';
+
 interface ShopItem {
     id: number;
     name: string;
@@ -30,9 +34,11 @@ interface ShopCategory {
 export default function DealsSection() {
     const dispatch = useDispatch();
     const router = useRouter();
+    
+    // Selectors
     const cartItems = useSelector(selectCartItems);
+    const wishlistItems = useSelector(selectWishlistItems);
 
-    // 1. Flatten the data structure safely using the interfaces above
     const categories = Object.values(SHOP_DATA as unknown as Record<string, ShopCategory>);
     
     const allProducts = categories.flatMap((category) => 
@@ -45,13 +51,25 @@ export default function DealsSection() {
 
     // Handlers
     const handleAddToCart = (product: ShopItem) => {
-        // We cast product to any here if your Redux action expects a slightly different item type
         dispatch(addItemToCart(cartItems, product as any));
+        toast.success(`${product.name} added to cart`);
     };
 
     const handleBuyNow = (product: ShopItem) => {
         dispatch(addItemToCart(cartItems, product as any));
         router.push('/checkout');
+    };
+
+    // --- NEW WISHLIST HANDLER ---
+    const handleToggleFavorite = (product: ShopItem) => {
+        const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
+        dispatch(toggleItemInWishlist(wishlistItems, product as any));
+
+        if (!isFavorite) {
+            toast.success(`${product.name} added to wishlist`);
+        } else {
+            toast.info(`${product.name} removed from wishlist`);
+        }
     };
 
     return (
@@ -75,6 +93,9 @@ export default function DealsSection() {
                     const totalInventory = 50; 
                     const soldCount = Math.floor((product.id % 10) * 4) + 10;
                     const percentage = (soldCount / totalInventory) * 100;
+                    
+                    // Check if this specific product is in wishlist
+                    const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
 
                     return (
                         <div key={product.id} className="group relative">
@@ -90,7 +111,6 @@ export default function DealsSection() {
                                     -20% OFF
                                 </div>
 
-                                {/* HOVER OVERLAY */}
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-4 gap-2">
                                     <button 
                                         onClick={() => handleBuyNow(product)}
@@ -106,8 +126,17 @@ export default function DealsSection() {
                                     </button>
                                 </div>
 
-                                <button className="absolute top-4 right-4 h-9 w-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all z-10">
-                                    <Heart className="w-4 h-4 text-slate-900" />
+                                {/* UPDATED FAVORITE BUTTON */}
+                                <button 
+                                    onClick={() => handleToggleFavorite(product)}
+                                    className="absolute top-4 right-4 h-9 w-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all z-10"
+                                >
+                                    <Heart 
+                                        className={cn(
+                                            "w-4 h-4 transition-colors",
+                                            isFavorite ? "fill-red-500 text-red-500" : "text-slate-900"
+                                        )} 
+                                    />
                                 </button>
                             </div>
 
