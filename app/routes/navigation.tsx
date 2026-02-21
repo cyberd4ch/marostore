@@ -52,14 +52,15 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
                 {/* Left: Logo */}
                 <Link href="/" className="flex shrink-0 items-center">
-                    <Image
-                        src="/logo.png" // Keep your existing logo
-                        alt="Marostore Logo"
-                        width={140}
-                        height={40}
-                        priority
-                        className="object-contain"
-                    />
+                    <div className="relative h-10 w-32 md:w-40"> {/* Fixed height box */}
+                        <Image
+                            src="/logo.png"
+                            alt="Marostore Logo"
+                            fill // Use fill to make it responsive to the parent div
+                            priority
+                            className="object-contain object-left" // object-contain ensures it stays inside
+                        />
+                    </div>
                 </Link>
 
                 {/* Center: Desktop Navigation Links (shadcn) */}
