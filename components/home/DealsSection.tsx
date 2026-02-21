@@ -59,7 +59,7 @@ export default function DealsSection() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
                 <div className="flex items-center gap-4">
                     <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
-                        Deals Of The Day
+                        Countdown to Easter Promo
                     </h3>
                     <div className="bg-red-600 text-white font-mono px-3 py-1 rounded-sm text-xs flex gap-2">
                         <EasterCountdown />
