@@ -51,14 +51,15 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
             <header className="fixed inset-x-4 top-4 z-50 mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-slate-200 bg-white/90 px-4 shadow-sm backdrop-blur-md md:px-8">
 
                 {/* Left: Logo */}
-                <Link href="/" className="flex shrink-0 items-center">
-                    <div className="relative h-10 w-32 md:w-40"> {/* Fixed height box */}
+                <Link href="/" className="flex shrink-0 items-center pl-2">
+                    <div className="relative h-12 w-40 md:w-52 transition-transform hover:scale-105 active:scale-95">
                         <Image
                             src="/logo.png"
                             alt="Marostore Logo"
-                            fill // Use fill to make it responsive to the parent div
+                            fill
                             priority
-                            className="object-contain object-left" // object-contain ensures it stays inside
+                            sizes="(max-width: 768px) 160px, 208px"
+                            className="object-contain object-left"
                         />
                     </div>
                 </Link>
