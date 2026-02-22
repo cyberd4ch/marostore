@@ -5,9 +5,16 @@ import { useDispatch } from "react-redux";
 import { AuthError, AuthErrorCodes } from "firebase/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import Button from "@/components/button/button.component";
-import { signUpStart } from "@/app/store/user/user.action";
-import { ArrowRight, Loader2 } from "lucide-react";
+import { 
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardHeader, 
+  CardTitle 
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { signUpStart, googleSignInStart } from "@/app/store/user/user.action";
+import { ArrowRight, Loader2, Chrome, Github } from "lucide-react";
 import { toast } from "sonner";
 
 const defaultFormFields = {
@@ -17,7 +24,7 @@ const defaultFormFields = {
     confirmPassword: "",
 };
 
-interface SignUpFormProps {
+export interface SignUpFormProps {
     onSwitchToSignIn?: () => void;
 }
 
@@ -31,7 +38,6 @@ const SignUpForm = ({ onSwitchToSignIn }: SignUpFormProps) => {
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-
         if (password !== confirmPassword) {
             toast.error("Passwords do not match");
             return;
@@ -42,7 +48,7 @@ const SignUpForm = ({ onSwitchToSignIn }: SignUpFormProps) => {
 
         try {
             dispatch(signUpStart(email, password, displayName));
-            resetFormFields();
+            // Sagas handle navigation; cleanup locally
             setTimeout(() => {
                 toast.dismiss(signupToast);
                 setIsLoading(false);
@@ -54,7 +60,6 @@ const SignUpForm = ({ onSwitchToSignIn }: SignUpFormProps) => {
                 toast.error("This email is already in use");
             } else {
                 toast.error("Sign up failed. Please try again.");
-                console.error("Sign up failed", error);
             }
         }
     };
@@ -65,118 +70,76 @@ const SignUpForm = ({ onSwitchToSignIn }: SignUpFormProps) => {
     };
 
     return (
-        <div className="w-full max-w-md mx-auto p-8 bg-white rounded-3xl border border-slate-100 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-            <div className="flex flex-col items-center gap-2 text-center mb-8">
-                <span className="px-3 py-1 rounded-full border border-slate-200 text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">
-                    Join The Club
-                </span>
-                <h1 className="text-3xl font-black tracking-tight text-slate-900 uppercase">
-                    Create Account
-                </h1>
-                <p className="text-slate-500 font-medium text-sm">
-                    Unlock exclusive fashion drops and fast checkout.
-                </p>
-            </div>
-
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                    <Label htmlFor="displayName" className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Full Name
-                    </Label>
-                    <Input
-                        id="displayName"
-                        name="displayName"
-                        type="text"
-                        placeholder="e.g. John Doe"
-                        required
-                        disabled={isLoading}
-                        value={displayName}
-                        onChange={handleChange}
-                        className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-slate-900 rounded-xl px-4"
-                    />
+        <Card className="border-none shadow-none bg-transparent">
+            <CardHeader className="text-center p-0 mb-8">
+                <div className="flex flex-col gap-2">
+                    <CardTitle className="text-3xl font-black tracking-tight text-slate-900 uppercase">
+                        Join Maro Store
+                    </CardTitle>
+                    <CardDescription className="text-slate-500 font-medium">
+                        Create your account to start your premium experience
+                    </CardDescription>
                 </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="email" className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                        Email Address
-                    </Label>
-                    <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        placeholder="you@example.com"
-                        required
-                        disabled={isLoading}
-                        value={email}
-                        onChange={handleChange}
-                        className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-slate-900 rounded-xl px-4"
-                    />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="password" className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                            Password
-                        </Label>
-                        <Input
-                            id="password"
-                            name="password"
-                            type="password"
-                            required
-                            disabled={isLoading}
-                            value={password}
-                            onChange={handleChange}
-                            className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-slate-900 rounded-xl px-4"
-                        />
+            </CardHeader>
+            <CardContent className="p-0">
+                <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <Button 
+                            variant="outline" 
+                            type="button" 
+                            onClick={() => dispatch(googleSignInStart())}
+                            className="rounded-xl border-slate-200 h-11 font-bold text-xs uppercase tracking-widest"
+                        >
+                            <Chrome className="mr-2 h-4 w-4" /> Google
+                        </Button>
+                        <Button 
+                            variant="outline" 
+                            type="button" 
+                            className="rounded-xl border-slate-200 h-11 font-bold text-xs uppercase tracking-widest"
+                        >
+                            <Github className="mr-2 h-4 w-4" /> Github
+                        </Button>
                     </div>
 
-                    <div className="space-y-2">
-                        <Label htmlFor="confirmPassword" className="text-xs font-bold uppercase tracking-wider text-slate-600">
-                            Confirm
-                        </Label>
-                        <Input
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            type="password"
-                            required
-                            disabled={isLoading}
-                            value={confirmPassword}
-                            onChange={handleChange}
-                            className="h-12 bg-slate-50/50 border-slate-200 focus-visible:ring-slate-900 rounded-xl px-4"
-                        />
+                    <div className="relative my-6">
+                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
+                        <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
+                            <span className="bg-white px-4 text-slate-400">or use email</span>
+                        </div>
                     </div>
+
+                    <div className="space-y-3">
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Full Name</Label>
+                            <Input name="displayName" placeholder="John Doe" required value={displayName} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Email Address</Label>
+                            <Input name="email" type="email" placeholder="m@example.com" required value={email} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Password</Label>
+                                <Input name="password" type="password" required value={password} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
+                            </div>
+                            <div className="space-y-1">
+                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Confirm</Label>
+                                <Input name="confirmPassword" type="password" required value={confirmPassword} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-black tracking-widest mt-4">
+                        {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="flex items-center">CREATE ACCOUNT <ArrowRight className="ml-2 h-4 w-4" /></span>}
+                    </Button>
+                </form>
+
+                <div className="mt-8 text-center text-sm">
+                    <span className="text-slate-500 font-medium">Already a member? </span>
+                    <button onClick={onSwitchToSignIn} className="font-bold text-slate-900 hover:underline underline-offset-4">Sign In</button>
                 </div>
-
-                <Button 
-                    type="submit" 
-                    disabled={isLoading}
-                    className="w-full h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-bold transition-all mt-6"
-                >
-                    {isLoading ? (
-                        <div className="flex items-center justify-center">
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Creating Account...
-                        </div>
-                    ) : (
-                        <div className="flex items-center justify-center">
-                            JOIN MARO STORE <ArrowRight className="ml-2 h-4 w-4" />
-                        </div>
-                    )}
-                </Button>
-            </form>
-
-            <div className="mt-8 text-center text-sm text-slate-500 font-medium">
-                Already have an account?{" "}
-                <button
-                    type="button"
-                    onClick={onSwitchToSignIn}
-                    disabled={isLoading}
-                    className="font-bold text-slate-900 hover:underline underline-offset-4 transition-all"
-                >
-                    Sign in here
-                </button>
-            </div>
-        </div>
+            </CardContent>
+        </Card>
     );
 };
 
