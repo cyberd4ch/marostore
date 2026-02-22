@@ -1,57 +1,78 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
-import { selectCurrentUser } from "@/app/store/user/user.selector"; // Adjust path as needed
+import { selectCurrentUser } from "@/app/store/user/user.selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SignInForm from "@/components/sign-in-form/sign-in-form.component";
 import SignUpForm from "@/components/sign-up-form/sign-up-form.component";
 import { Loader2 } from "lucide-react";
 
-export default function AuthPage() {
+// Move the logic into a sub-component to wrap it in Suspense
+function AuthContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const currentUser = useSelector(selectCurrentUser);
     
-    const initialTab = searchParams.get("mode") === "signup" ? "signup" : "signin";
-    const [activeTab, setActiveTab] = useState(initialTab);
+    // Default to 'signin', but check search params
+    const mode = searchParams.get("mode");
+    const [activeTab, setActiveTab] = useState(mode === "signup" ? "signup" : "signin");
 
-    // NAVIGATION LOGIC: Watch for successful login
     useEffect(() => {
         if (currentUser) {
-            // Check if user has completed profile (optional check)
-            // If you have a 'profileCompleted' flag in Redux, use it here
             router.push("/onboarding"); 
         }
     }, [currentUser, router]);
 
-    // If user is already logged in, show a loader while redirecting
     if (currentUser) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                <p className="text-muted-foreground animate-pulse">Redirecting to onboarding...</p>
+            <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
+                <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
+                <p className="text-slate-500 animate-pulse">Redirecting...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-background p-4">
-            <div className="w-full max-w-md">
-                <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2">
-                        <TabsTrigger value="signin">Sign In</TabsTrigger>
-                        <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                    </TabsList>
-                    <TabsContent value="signin">
-                        <SignInForm onSwitchToSignUp={() => setActiveTab("signup")} />
-                    </TabsContent>
-                    <TabsContent value="signup">
-                        <SignUpForm onSwitchToSignIn={() => setActiveTab("signin")} />
-                    </TabsContent>
-                </Tabs>
-            </div>
+        <div className="w-full max-w-md mx-auto">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-slate-100 rounded-xl p-1 mb-8">
+                    <TabsTrigger 
+                        value="signin" 
+                        className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold uppercase text-xs tracking-widest"
+                    >
+                        Sign In
+                    </TabsTrigger>
+                    <TabsTrigger 
+                        value="signup"
+                        className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold uppercase text-xs tracking-widest"
+                    >
+                        Sign Up
+                    </TabsTrigger>
+                </TabsList>
+                <TabsContent value="signin" className="border-none p-0 outline-none">
+                    <SignInForm onSwitchToSignUp={() => setActiveTab("signup")} />
+                </TabsContent>
+                <TabsContent value="signup" className="border-none p-0 outline-none">
+                    <SignUpForm onSwitchToSignIn={() => setActiveTab("signin")} />
+                </TabsContent>
+            </Tabs>
+        </div>
+    );
+}
+
+// Main Page Export with Suspense Boundary
+export default function AuthPage() {
+    return (
+        <div className="min-h-screen flex items-center justify-center bg-slate-50/50 p-6">
+            <Suspense fallback={
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+                </div>
+            }>
+                <AuthContent />
+            </Suspense>
         </div>
     );
 }
