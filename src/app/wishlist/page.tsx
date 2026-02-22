@@ -2,7 +2,7 @@
 
 import { useSelector } from 'react-redux';
 import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
-import ProductCard from '@/components/product-card/product-card.component';
+import ProductCard from '@/components/ProductCard';
 // 1. Import the correct type
 import { CategoryItem } from '@/store/categories/category.types'; 
 import { Heart } from 'lucide-react';

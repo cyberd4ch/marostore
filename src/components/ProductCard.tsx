@@ -4,15 +4,16 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Product } from '../../services/productService';
+import type { Product } from '@/services/productService';
 
 interface ProductCardProps {
-    product: Product;
+    product: any;
+    compact?: boolean;
 }
 
-export default function ProductCard({ product }: ProductCardProps) {
+export default function ProductCard({ product, compact = false }: ProductCardProps) {
     return (
-        <Card className="flex flex-col h-full hover:shadow-lg transition-shadow">
+        <Card className={compact ? 'product-card compact' : 'product-card'}>
             <CardHeader className="pb-2">
                 <div className="relative w-full h-48 mb-2">
                     <Image

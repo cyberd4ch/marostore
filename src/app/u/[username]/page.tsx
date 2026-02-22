@@ -3,7 +3,7 @@
 import { useSelector } from "react-redux";
 import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
 import { selectCurrentUser } from "@/store/user/user.selector"; // Added this
-import ProductCard from "@/components/product-card/product-card.component";
+import ProductCard from "@/components/ProductCard";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";

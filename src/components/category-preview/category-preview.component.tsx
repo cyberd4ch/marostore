@@ -2,7 +2,7 @@
 
 import { FC } from 'react';
 import Link from 'next/link';
-import ProductCard from '../product-card/product-card.component';
+import ProductCard from '@/components/ProductCard';
 import { CategoryItem } from '../../store/categories/category.types';
 
 type CategoryPreviewProps = {
@@ -25,7 +25,7 @@ const CategoryPreview: FC<CategoryPreviewProps> = ({ title, products }) => {
                 {products
                     .filter((_, idx) => idx < 4)
                     .map((product) => (
-                        <ProductCard key={product.id} product={product} />
+                        <ProductCard key={product.id} product={product as any} />
                     ))}
             </div>
         </div>
