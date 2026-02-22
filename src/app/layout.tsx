@@ -22,12 +22,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="font-sans">
         <React.StrictMode>
           <Providers>
-            <Navigation>
               <StoreProvider>
-                {children}
+                <Navigation>
+                  {children}
+                </Navigation>
               </StoreProvider>
               <Toaster position="top-right" richColors />
-              </Navigation>
           </Providers>
         </React.StrictMode>
       </body>

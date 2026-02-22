@@ -79,8 +79,15 @@ const CartDropdown = () => {
     }, [dispatch]);
 
     return (
-        <div className="absolute right-0 top-full z-50 mt-4 w-screen max-w-[450px] px-4 sm:px-0 origin-top-right transition-all">
-            <Card className="absolute top-16 right-4 w-full max-w-[450px] rounded-[2.5rem] border-none bg-white p-2 shadow-2xl">
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/20 backdrop-blur-sm sm:absolute sm:inset-auto sm:right-0 sm:top-full sm:bg-transparent sm:backdrop-blur-none sm:mt-4">
+            <Card className="relative h-full w-full max-w-full flex-col rounded-none border-none bg-white shadow-2xl sm:h-auto sm:max-w-[450px] sm:rounded-[2.5rem] sm:p-2 animate-in slide-in-from-right sm:zoom-in-95 duration-300">
+                <button
+                    onClick={closeDropdown}
+                    className="absolute right-6 top-8 z-10 p-2 rounded-full hover:bg-slate-100 transition-colors"
+                    aria-label="Close cart"
+                >
+                    <X className="h-6 w-6 text-slate-500" />
+                </button>
                 <CardHeader className="space-y-1 pb-4 pt-8 px-8">
                     <div className="flex items-center justify-between">
                         <h2 className="text-2xl font-bold tracking-tight text-primary">Your Cart</h2>
