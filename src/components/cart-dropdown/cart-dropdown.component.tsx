@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useRef, useEffect, useState } from 'react';
+import { createPortal } from 'react-dom'; // Import Portal
 import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -19,13 +20,17 @@ const CartDropdown = () => {
     const router = useRouter();
     const dispatch = useDispatch();
     const ref = useRef<HTMLDivElement>(null);
-    const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [mounted, setMounted] = useState(false); // To handle SSR
 
-    const cartTotal = cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
-    const cartCount = cartItems.reduce((total, item) => total + item.quantity, 0);
+    // Handle hydration to prevent SSR errors with Portals
+    useEffect(() => {
+        setMounted(true);
+        return () => setMounted(false);
+    }, []);
 
     const closeDropdown = useCallback(() => dispatch(setIsCartOpen(false)), [dispatch]);
 
+    // Click outside logic
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (ref.current && !ref.current.contains(event.target as Node)) {
@@ -36,79 +41,93 @@ const CartDropdown = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, [isCartOpen, closeDropdown]);
 
-    return (
+    // Prevent scrolling when cart is open
+    useEffect(() => {
+        if (isCartOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = 'unset';
+        }
+        return () => { document.body.style.overflow = 'unset'; };
+    }, [isCartOpen]);
+
+    if (!mounted) return null;
+
+    // Use createPortal to attach this to the document body
+    return createPortal(
         <AnimatePresence>
             {isCartOpen && (
-                /* Wrapper: Fixed on all to prevent "cutting off" at top */
-                <div className="fixed inset-0 z-[999] flex justify-end">
+                <div className="fixed inset-0 z-[9999] flex justify-end">
                     {/* Backdrop */}
                     <motion.div 
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={closeDropdown}
-                        className="absolute inset-0 bg-black/40 backdrop-blur-sm sm:bg-black/20"
+                        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
                     />
                     
+                    {/* Drawer Content */}
                     <motion.div
                         ref={ref}
                         initial={{ x: '100%' }}
                         animate={{ x: 0 }}
                         exit={{ x: '100%' }}
                         transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                        /* Mobile: Full height, Desktop: Right-aligned Floating Card */
-                        className="relative h-full w-[85vw] max-w-[450px] bg-white shadow-2xl sm:h-[calc(100vh-2rem)] sm:m-4 sm:rounded-[2.5rem] overflow-hidden flex flex-col"
+                        className="relative h-full w-[85vw] max-w-[400px] bg-white shadow-2xl flex flex-col sm:m-4 sm:h-[calc(100vh-2rem)] sm:rounded-[2.5rem] overflow-hidden"
                     >
-                        <CardHeader className="relative shrink-0 pb-4 pt-10 px-6 sm:px-8">
-                            <button onClick={closeDropdown} className="absolute right-4 top-4 p-2 rounded-full hover:bg-slate-100 transition-colors">
+                        <CardHeader className="shrink-0 pb-4 pt-10 px-6 sm:px-8">
+                            <button onClick={closeDropdown} className="absolute right-6 top-8 p-2 rounded-full hover:bg-slate-100 transition-colors">
                                 <X className="h-6 w-6 text-slate-400" />
                             </button>
                             <div className="flex items-center gap-3">
-                                <h2 className="text-xl sm:text-2xl font-black text-slate-900">Your Cart</h2>
-                                <Badge className="bg-slate-100 text-slate-900 rounded-full px-3">{cartCount}</Badge>
+                                <h2 className="text-2xl font-black text-slate-900">Your Cart</h2>
+                                <Badge className="bg-slate-100 text-slate-900 rounded-full px-3">{cartItems.length}</Badge>
                             </div>
                         </CardHeader>
 
-                        <CardContent className="flex-grow overflow-y-auto px-6 sm:px-8 custom-scrollbar">
+                        <CardContent className="flex-grow overflow-y-auto px-6 sm:px-8">
                             {cartItems.length ? (
-                                cartItems.map((item) => (
-                                    <CartItem
-                                        key={item.id}
-                                        cartItem={item}
-                                        onIncrement={() => dispatch(addItemToCart(cartItems, item))}
-                                        onDecrement={() => dispatch(removeItemFromCart(cartItems, item))}
-                                        onRemove={() => dispatch(clearItemFromCart(cartItems, item))}
-                                    />
-                                ))
+                                <div className="divide-y divide-slate-100">
+                                    {cartItems.map((item) => (
+                                        <CartItem
+                                            key={item.id}
+                                            cartItem={item}
+                                            onIncrement={() => dispatch(addItemToCart(cartItems, item))}
+                                            onDecrement={() => dispatch(removeItemFromCart(cartItems, item))}
+                                            onRemove={() => dispatch(clearItemFromCart(cartItems, item))}
+                                        />
+                                    ))}
+                                </div>
                             ) : (
-                                <div className="flex h-full flex-col items-center justify-center opacity-50">
-                                    <Box className="h-12 w-12 mb-2" />
-                                    <p>Cart is empty</p>
+                                <div className="flex h-full flex-col items-center justify-center text-slate-400">
+                                    <Box className="h-12 w-12 mb-4 opacity-20" />
+                                    <p className="font-medium">Your cart is empty</p>
                                 </div>
                             )}
                         </CardContent>
 
                         {cartItems.length > 0 && (
-                            <CardFooter className="shrink-0 flex flex-col gap-3 bg-slate-50 p-6 sm:p-8">
-                                <div className="w-full space-y-2">
-                                    <div className="flex justify-between text-slate-500">
-                                        <span>Total</span>
-                                        <span className="text-xl font-black text-slate-900">₵{cartTotal.toFixed(2)}</span>
-                                    </div>
+                            <CardFooter className="shrink-0 bg-slate-50 p-6 sm:p-8 flex flex-col gap-4">
+                                <div className="flex justify-between items-end w-full">
+                                    <span className="text-slate-500 font-medium">Total Amount</span>
+                                    <span className="text-2xl font-black text-slate-900">
+                                        ₵{cartItems.reduce((acc, item) => acc + (item.quantity * item.price), 0).toFixed(2)}
+                                    </span>
                                 </div>
                                 <Button
-                                    onClick={() => { setIsCheckingOut(true); router.push('/checkout'); closeDropdown(); }}
-                                    className="h-14 w-full rounded-2xl bg-black text-white font-bold"
+                                    onClick={() => { router.push('/checkout'); closeDropdown(); }}
+                                    className="h-14 w-full rounded-2xl bg-black text-white text-lg font-bold hover:opacity-90 transition-all"
                                 >
-                                    <CreditCard className="mr-2 h-5 w-5" />
-                                    {isCheckingOut ? 'Processing...' : 'Checkout'}
+                                    Proceed to Checkout
                                 </Button>
                             </CardFooter>
                         )}
                     </motion.div>
                 </div>
             )}
-        </AnimatePresence>
+        </AnimatePresence>,
+        document.body
     );
 };
 
