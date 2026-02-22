@@ -16,9 +16,10 @@ interface Product {
 
 interface ProductCardProps {
     product: Product;
+    compact?: boolean;
 }
 
-const ProductCard = ({ product }: ProductCardProps) => {
+const ProductCard = ({ product, compact = false }: ProductCardProps) => {
     // Safe Check for image source
     const displayImage = product.imageUrl || product.image || "/placeholder.png";
 
@@ -27,7 +28,8 @@ const ProductCard = ({ product }: ProductCardProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -8 }}
-            className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-xl"
+            className={`group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-xl ${compact ? "p-2" : ""
+                }`}
         >
             {/* Image Container with 4:5 Aspect Ratio */}
             <div className="relative aspect-[4/5] w-full overflow-hidden bg-gray-100">
@@ -45,6 +47,31 @@ const ProductCard = ({ product }: ProductCardProps) => {
                     <button className="rounded-full bg-white p-2 text-gray-900 shadow-md hover:bg-red-50 hover:text-red-500">
                         <Heart size={18} />
                     </button>
+                </div>
+            </div>
+
+            <div className={compact ? "p-2" : "flex flex-col p-4"}>
+                {!compact && product.category && (
+                    <span className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
+                        {product.category}
+                    </span>
+                )}
+
+                <h3 className={`font-semibold text-gray-800 line-clamp-1 ${compact ? "text-xs" : "text-lg"}`}>
+                    {product.name}
+                </h3>
+
+                <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-4"}`}>
+                    <p className={`font-bold text-gray-900 ${compact ? "text-sm" : "text-xl"}`}>
+                        ${product.price.toFixed(2)}
+                    </p>
+
+                    {!compact && (
+                        <button className="flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700">
+                            <ShoppingCart size={16} />
+                            Add
+                        </button>
+                    )}
                 </div>
             </div>
 
