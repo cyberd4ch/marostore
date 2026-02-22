@@ -1,3 +1,4 @@
+// src/app/shop/page.tsx
 'use client';
 
 import { useSelector } from 'react-redux';
@@ -15,13 +16,14 @@ export default function ShopPage() {
     if (isLoading) return <Spinner />;
 
     return (
-        <>
+        // Added flex layout with large vertical gaps between categories
+        <div className="flex flex-col gap-16 md:gap-24">
             {Object.keys(categoriesMap).map((title) => {
                 const products = categoriesMap[title];
                 return (
                     <CategoryPreview key={title} title={title} products={products} />
                 );
             })}
-        </>
+        </div>
     );
 }

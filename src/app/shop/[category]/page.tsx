@@ -1,3 +1,4 @@
+// src/app/[category]/page.tsx
 'use client';
 
 import { useState, useEffect, Fragment } from 'react';
@@ -23,13 +24,22 @@ export default function CategoryPage() {
 
     return (
         <Fragment>
-            <h1 className="text-4xl md:text-5xl font-bold text-center mb-8">
-                {category?.toUpperCase()}
-            </h1>
+            {/* Upgraded Header Typography */}
+            <div className="mb-12 flex flex-col items-center justify-center space-y-4">
+                <h1 className="text-4xl font-black tracking-tighter text-slate-900 md:text-5xl lg:text-6xl uppercase">
+                    {category}
+                </h1>
+                <div className="h-1.5 w-16 bg-slate-900 rounded-full" />
+            </div>
+
             {isLoading ? (
                 <Spinner />
             ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 lg:gap-8 px-4">
+                /* Upgraded Grid: 
+                  - gap-x-6 for horizontal spacing
+                  - gap-y-12 or gap-y-16 for vertical spacing (gives the cards room below)
+                */
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-12 lg:gap-y-16">
                     {products.map((product) => (
                         <ProductCard key={product.id} product={product} />
                     ))}
