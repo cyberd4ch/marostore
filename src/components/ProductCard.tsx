@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import type { Product } from '@/services/productService';
+import type { Product } from '../../services/productService';
 
 interface ProductCardProps {
     product: Product;

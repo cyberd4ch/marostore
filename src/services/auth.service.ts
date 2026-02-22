@@ -1,6 +1,6 @@
 // src/services/auth.service.ts
-import api from '@/src/lib/api';
-import type { LoginRequest, LoginResponse, UserProfile } from '@/src/types/auth';
+import api from '@/lib/api';
+import type { LoginRequest, LoginResponse, UserProfile } from '@/types/auth'; // Assuming you have these types defined in a central location
 
 export const authService = {
   // Login with email and password
