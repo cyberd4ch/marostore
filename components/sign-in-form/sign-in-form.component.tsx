@@ -1,104 +1,156 @@
-'use client';
+"use client";
 
-import { useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import { Button } from '@/components/ui/button';
-import { ArrowRight } from 'lucide-react';
-import Link from 'next/link';
-import Image from 'next/image';
-import Directory from '@/components/directory/directory.component';
-import DealsSection from '@/components/home/DealsSection';
-import { fetchCategoriesStart } from '@/app/store/categories/category.action';
-import { selectCategoriesMap } from '@/app/store/categories/category.selector';
-import TrendingWearSection from '@/components/home/TrendingWearSection';
-import CategoryShowcase from '@/components/home/CategoryShowcase';
+import { useState, FormEvent, ChangeEvent, FC } from "react";
+import { useDispatch } from "react-redux";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Button from "@/components/button/button.component";
+import { googleSignInStart, emailSignInStart } from "@/app/store/user/user.action";
+import { Apple, Chromium, Facebook, Loader2 } from "lucide-react";
+import { toast } from "sonner"; // Assuming sonner as used in your Cart component
 
-export default function HomePage() {
+const defaultFormFields = {
+    email: "",
+    password: "",
+};
+
+interface SignInFormProps {
+    onSwitchToSignUp?: () => void;
+}
+
+const SignInForm: FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
     const dispatch = useDispatch();
+    const [formFields, setFormFields] = useState(defaultFormFields);
+    const [isLoading, setIsLoading] = useState(false); // New loading state
+    const { email, password } = formFields;
 
-    const categoriesMap = useSelector(selectCategoriesMap);
+    const resetFormFields = () => setFormFields(defaultFormFields);
 
-    const categoriesArray = Object.keys(categoriesMap).map((title) => ({
-        title,
-        items: categoriesMap[title],
-    }));
+    const signInWithGoogle = () => {
+        setIsLoading(true);
+        toast.info("Opening Google Sign-In...");
+        dispatch(googleSignInStart());
+        // Note: Sagas handle the redirect, so we don't manually set isLoading(false) here
+        // as the page will usually redirect or refresh.
+    };
 
-    useEffect(() => {
-        dispatch(fetchCategoriesStart());
-    }, [dispatch]);
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        dispatch(emailSignInStart(email, password));
+        setIsLoading(true);
+
+        // We fire the toast immediately to give feedback
+        const loginToast = toast.loading("Verifying credentials...");
+
+        try {
+            dispatch(emailSignInStart(email, password));
+            // We clear the loading toast after a brief delay 
+            // Sagas will handle the actual navigation/error state globally
+            setTimeout(() => {
+                toast.dismiss(loginToast);
+                setIsLoading(false);
+            }, 2000);
+        } catch (error) {
+            toast.error("Sign in failed. Please check your credentials.");
+            toast.dismiss(loginToast);
+            setIsLoading(false);
+        }
+    };
+
+    const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
+        const { name, value } = event.target;
+        setFormFields((prev) => ({ ...prev, [name]: value }));
+    };
 
     return (
-        <main className="min-h-screen bg-white">
-            {/* SECTION 1: CLEAN MINIMALIST HERO */}
-            <section className="relative w-full h-[70vh] flex items-center overflow-hidden bg-slate-50">
-                <div className="container mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center z-10">
-                    <div className="text-left space-y-8">
-                        <div className="inline-flex items-center space-x-2 bg-white border border-slate-200 px-3 py-1 rounded-full shadow-sm">
-                            <span className="flex h-2 w-2 rounded-full bg-red-500 animate-ping" />
-                            <span className="text-xs font-bold uppercase tracking-wider text-slate-600">New Season Drop</span>
-                        </div>
-
-                        <h1 className="text-6xl md:text-8xl font-black text-slate-900 leading-[0.85] tracking-tighter">
-                            WEAR <br /> BETTER.
-                        </h1>
-
-                        <p className="text-slate-500 text-lg md:text-xl max-w-md leading-relaxed">
-                            Experience premium quality and timeless style with Maro Store’s exclusive collection.
-                        </p>
-
-                        <div className="flex items-center gap-4">
-                            <Button asChild size="lg" className="rounded-none h-14 px-10 bg-slate-900 hover:bg-black transition-all">
-                                <Link href="/shop">SHOP NOW</Link>
-                            </Button>
-                            <Link href="/shop" className="group flex items-center font-bold text-sm tracking-widest uppercase">
-                                Explore <ArrowRight className="ml-2 h-4 w-4 group-hover:translate-x-2 transition-transform" />
-                            </Link>
-                        </div>
-                    </div>
-
-                    <div className="hidden lg:block relative h-[60vh] w-full">
-                        <Image
-                            src="/bgg.png"
-                            alt="Fashion background"
-                            fill
-                            className="object-contain object-right"
-                            priority
-                        />
-                    </div>
+        <div className="flex flex-col gap-6">
+            <div className="flex flex-col items-center gap-2 text-center">
+                <h1 className="text-2xl font-bold">Login to your account</h1>
+                <p className="text-sm text-muted-foreground">
+                    Enter your account details below to login
+                </p>
+            </div>
+            <form onSubmit={handleSubmit} className="grid gap-6">
+                <div className="grid gap-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                        id="email"
+                        name="email"
+                        type="email"
+                        placeholder="m@example.com"
+                        required
+                        disabled={isLoading}
+                        value={email}
+                        onChange={handleChange}
+                    />
                 </div>
-                {/* Subtle background text */}
-                <div className="absolute bottom-0 right-0 text-[20vw] font-black text-slate-200/50 leading-none select-none translate-y-1/4">
-                    MARO
-                </div>
-            </section>
-
-            {/* SECTION 2: DEALS OF THE DAY (With proper white space) */}
-            <section className="py-24 bg-white border-y border-slate-100">
-                <DealsSection />
-            </section>
-
-            <section className="py-24 bg-white border-y border-slate-100">
-                <TrendingWearSection />
-            </section>
-
-            <section className="py-24 bg-white border-y border-slate-100">
-                <CategoryShowcase categories={categoriesArray} />
-            </section>
-
-
-            {/* SECTION 3: DIRECTORY (Categories) */}
-            <section className="py-24">
-                <div className="container mx-auto px-6">
-                    <div className="flex flex-col items-center text-center mb-16">
-                        <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">The Collections</h2>
-                        <div className="h-1 w-12 bg-slate-900 mt-4" />
+                <div className="grid gap-2">
+                    <div className="flex items-center">
+                        <Label htmlFor="password">Password</Label>
+                        <a href="#" className="ml-auto text-sm text-muted-foreground hover:underline">
+                            Forgot your password?
+                        </a>
                     </div>
-                    {/* We wrap the Styled Component Directory to control its layout better */}
-                    <div className="w-full">
-                        <Directory />
-                    </div>
+                    <Input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        disabled={isLoading}
+                        value={password}
+                        onChange={handleChange}
+                    />
                 </div>
-            </section>
-        </main>
+                <Button type="submit" className="w-full" disabled={isLoading}>
+                    {isLoading ? (
+                        <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Signing in...
+                        </>
+                    ) : (
+                        "Login"
+                    )}
+                </Button>
+
+                <div className="relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t after:border-border">
+                    <span className="relative z-10 bg-background px-2 text-muted-foreground">
+                        Or continue with
+                    </span>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                    <Button variant="inverted" className="w-full" type="button" disabled={isLoading}>
+                        <Apple className="h-4 w-4" />
+                        <span className="sr-only">Login with Apple</span>
+                    </Button>
+
+                    <Button variant="google" className="w-full" type="button" onClick={signInWithGoogle} disabled={isLoading}>
+                        <Chromium className="h-4 w-4" />
+                        <span className="sr-only">Login with Google</span>
+                    </Button>
+
+                    <Button variant="inverted" className="w-full" type="button" disabled={isLoading}>
+                        <Facebook className="h-4 w-4" />
+                        <span className="sr-only">Login with Meta</span>
+                    </Button>
+                </div>
+            </form>
+
+            {onSwitchToSignUp && (
+                <div className="text-center text-sm">
+                    Don&apos;t have an account?{" "}
+                    <button
+                        type="button"
+                        onClick={onSwitchToSignUp}
+                        className="underline underline-offset-4 hover:text-primary"
+                        disabled={isLoading}
+                    >
+                        Sign up
+                    </button>
+                </div>
+            )}
+        </div>
     );
-}
+};
+
+export default SignInForm;
