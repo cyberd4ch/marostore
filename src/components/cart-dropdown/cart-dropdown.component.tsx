@@ -10,7 +10,13 @@ import { X, CreditCard, Box, Trash2 } from "lucide-react";
 import Button from '../button/button.component';
 import CartItem from '../cart-item/cart-item.component';
 import { selectCartItems, selectIsCartOpen } from '../../store/cart/cart.selector';
-import { setIsCartOpen, clearItemFromCart, addItemToCart, removeItemFromCart } from '../../store/cart/cart.action';
+import {
+    setIsCartOpen,
+    addItemToCart,
+    removeItemFromCart,
+    clearItemFromCart,
+    clearAllItemsFromCart
+} from '../../store/cart/cart.action';
 import { CardHeader, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "../ui/badge";
 import { toast } from 'sonner';
@@ -36,13 +42,10 @@ const CartDropdown = () => {
 
     // FIXED: Clear All Logic
     const clearAllHandler = () => {
-        // We create a copy to avoid mutation issues during the loop
-        const itemsToClear = [...cartItems];
-        itemsToClear.forEach(item => {
-            dispatch(clearItemFromCart(cartItems, item));
+        dispatch(clearAllItemsFromCart()); // Single action, no loop, no stale state
+        toast.error("Cart cleared successfully", {
+            icon: <Trash2 className="h-4 w-4" />,
         });
-        
-        toast.error("Cart cleared successfully");
         setShowClearAll(false);
     };
 
@@ -64,14 +67,14 @@ const CartDropdown = () => {
         <AnimatePresence shadow-xl>
             {isCartOpen && (
                 <div className="fixed inset-0 z-[9999] flex justify-end items-start sm:p-4">
-                    <motion.div 
+                    <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
                         exit={{ opacity: 0 }}
                         onClick={closeDropdown}
                         className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
                     />
-                    
+
                     <motion.div
                         ref={ref}
                         initial={{ x: '100%', opacity: 0.5 }}
@@ -84,33 +87,34 @@ const CartDropdown = () => {
                             <button onClick={closeDropdown} className="absolute right-6 top-8 p-2 rounded-full hover:bg-slate-100 transition-colors">
                                 <X className="h-6 w-6 text-slate-400" />
                             </button>
-                            
+
                             <div className="flex items-center gap-3">
                                 <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase">Your Cart</h2>
-                                
+
                                 {/* REFINED: Clear All Animation */}
                                 <div className="relative h-8 flex items-center">
                                     <AnimatePresence mode="wait">
                                         {!showClearAll ? (
                                             <motion.div
                                                 key="badge"
-                                                initial={{ opacity: 0, scale: 0.8, y: 10 }}
-                                                animate={{ opacity: 1, scale: 1, y: 0 }}
-                                                exit={{ opacity: 0, scale: 0.8, y: -10 }}
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.5, filter: "blur(4px)" }}
                                                 onClick={() => setShowClearAll(true)}
                                             >
-                                                <Badge className="bg-slate-900 text-white hover:bg-slate-800 rounded-full px-3 py-1 font-bold cursor-pointer transition-transform active:scale-90">
+                                                <Badge className="bg-slate-900 text-white hover:bg-slate-800 rounded-full px-3 py-1 font-bold cursor-pointer transition-transform active:scale-95">
                                                     {cartItems.length}
                                                 </Badge>
                                             </motion.div>
                                         ) : (
                                             <motion.button
                                                 key="clear-btn"
-                                                initial={{ width: 0, opacity: 0, x: 20 }}
-                                                animate={{ width: 'auto', opacity: 1, x: 0 }}
-                                                exit={{ width: 0, opacity: 0, x: 20 }}
+                                                initial={{ opacity: 0, x: 10, scale: 0.9 }}
+                                                animate={{ opacity: 1, x: 0, scale: 1 }}
+                                                exit={{ opacity: 0, x: 10, scale: 0.9 }}
+                                                transition={{ type: "spring", stiffness: 400, damping: 25 }}
                                                 onClick={(e) => { e.stopPropagation(); clearAllHandler(); }}
-                                                className="flex items-center gap-2 bg-red-500 text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase shadow-lg shadow-red-200"
+                                                className="flex items-center gap-2 bg-red-600 text-white px-4 py-1.5 rounded-full text-[10px] font-black tracking-widest uppercase shadow-lg shadow-red-200 hover:bg-red-700 transition-colors"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />
                                                 <span>Confirm Clear</span>
@@ -125,12 +129,12 @@ const CartDropdown = () => {
                             {cartItems.length ? (
                                 <div className="divide-y divide-slate-100">
                                     {cartItems.map((item) => (
-                                        <CartItem 
-                                            key={item.id} 
-                                            cartItem={item} 
+                                        <CartItem
+                                            key={item.id}
+                                            cartItem={item}
                                             onIncrement={() => dispatch(addItemToCart(cartItems, item))}
                                             onDecrement={() => dispatch(removeItemFromCart(cartItems, item))}
-                                            onRemove={() => dispatch(clearItemFromCart(cartItems, item))} 
+                                            onRemove={() => dispatch(clearItemFromCart(cartItems, item))}
                                         />
                                     ))}
                                 </div>
