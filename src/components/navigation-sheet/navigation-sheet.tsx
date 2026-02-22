@@ -35,7 +35,9 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                     <SheetHeader className="mb-8 text-left">
                         <SheetTitle asChild>
                             <Link href="/" className="flex items-center">
-                                <Image src="/logo.png" alt="Logo" width={120} height={40} className="object-contain" />
+                                <span className="text-2xl font-extrabold tracking-tighter text-slate-900 transition-colors hover:text-slate-700 md:text-3xl">
+                                    marostore
+                                </span>
                             </Link>
                         </SheetTitle>
                     </SheetHeader>
