@@ -9,14 +9,14 @@ import { Trash2, Minus, Plus, CreditCard, ChevronRight, Box } from "lucide-react
 
 import Button, { BUTTON_TYPE_CLASSES } from '../button/button.component'; // updated import
 import CartItem from '../cart-item/cart-item.component';
-import { selectCartItems } from '../../app/store/cart/cart.selector';
+import { selectCartItems } from '../../store/cart/cart.selector';
 import {
     setIsCartOpen,
     addItemToCart,
     removeItemFromCart,
     clearItemFromCart,
-} from '../../app/store/cart/cart.action';
-import { CartItem as TCartItem } from '../../app/store/cart/cart.types';
+} from '../../store/cart/cart.action';
+import { CartItem as TCartItem } from '../../store/cart/cart.types';
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";

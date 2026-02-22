@@ -13,10 +13,10 @@ import CartDropdown from '@/components/cart-dropdown/cart-dropdown.component';
 import { NavMenu } from '@/components/nav-menu/nav-menu';
 import { NavigationSheet } from '@/components/navigation-sheet/navigation-sheet';
 
-import { selectWishlistCount } from '@/app/store/wishlist/wishlist.selector';
-import { selectIsCartOpen } from '@/app/store/cart/cart.selector';
-import { selectCurrentUser } from '@/app/store/user/user.selector';
-import { signOutStart } from '@/app/store/user/user.action';
+import { selectWishlistCount } from '@/store/wishlist/wishlist.selector';
+import { selectIsCartOpen } from '@/store/cart/cart.selector';
+import { selectCurrentUser } from '@/store/user/user.selector';
+import { signOutStart } from '@/store/user/user.action';
 import { Button } from '@/components/ui/button';
 
 export default function Navigation({ children }: { children: React.ReactNode }) {

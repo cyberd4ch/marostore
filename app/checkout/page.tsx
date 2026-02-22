@@ -10,8 +10,8 @@ import {
     User, ShieldCheck, Lock, ArrowLeft
 } from "lucide-react";
 
-import { selectCartItems } from '../../app/store/cart/cart.selector';
-import { CartItem as TCartItem } from '../../app/store/cart/cart.types';
+import { selectCartItems } from '../../store/cart/cart.selector';
+import { CartItem as TCartItem } from '../../store/cart/cart.types';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

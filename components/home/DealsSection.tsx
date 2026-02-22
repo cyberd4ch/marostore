@@ -9,13 +9,13 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner'; // Assuming you use sonner for notifications like the other component
 
 import SHOP_DATA from '@/app/utils/shop/shop-data'; 
-import { addItemToCart } from '@/app/store/cart/cart.action';
-import { selectCartItems } from '@/app/store/cart/cart.selector';
+import { addItemToCart } from '@/store/cart/cart.action';
+import { selectCartItems } from '@/store/cart/cart.selector';
 import { EasterCountdown } from '@/components/countdown/EasterCountdown';
 
 // --- NEW IMPORTS FOR WISHLIST ---
-import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
-import { toggleItemInWishlist } from '@/app/store/wishlist/wishlist.action';
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
+import { toggleItemInWishlist } from '@/store/wishlist/wishlist.action';
 
 interface ShopItem {
     id: number;

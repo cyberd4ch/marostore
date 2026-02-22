@@ -1,10 +1,10 @@
 'use client';
 
 import { useSelector } from 'react-redux';
-import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
 import ProductCard from '@/components/product-card/product-card.component';
 // 1. Import the correct type
-import { CategoryItem } from '@/app/store/categories/category.types'; 
+import { CategoryItem } from '@/store/categories/category.types'; 
 import { Heart } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';

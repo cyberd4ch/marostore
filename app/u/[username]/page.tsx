@@ -1,8 +1,8 @@
 "use client";
 
 import { useSelector } from "react-redux";
-import { selectWishlistItems } from "@/app/store/wishlist/wishlist.selector";
-import { selectCurrentUser } from "@/app/store/user/user.selector"; // Added this
+import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
+import { selectCurrentUser } from "@/store/user/user.selector"; // Added this
 import ProductCard from "@/components/product-card/product-card.component";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";

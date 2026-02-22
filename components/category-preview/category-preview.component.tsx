@@ -3,7 +3,7 @@
 import { FC } from 'react';
 import Link from 'next/link';
 import ProductCard from '../product-card/product-card.component';
-import { CategoryItem } from '../../app/store/categories/category.types';
+import { CategoryItem } from '../../store/categories/category.types';
 
 type CategoryPreviewProps = {
     title: string;

@@ -8,8 +8,8 @@ import Link from 'next/link';
 import Image from 'next/image';
 import Directory from '@/components/directory/directory.component';
 import DealsSection from '@/components/home/DealsSection';
-import { fetchCategoriesStart } from '@/app/store/categories/category.action';
-import { selectCategoriesMap } from '@/app/store/categories/category.selector';
+import { fetchCategoriesStart } from '@/store/categories/category.action';
+import { selectCategoriesMap } from '@/store/categories/category.selector';
 import TrendingWearSection from '@/components/home/TrendingWearSection';
 import CategoryShowcase from '@/components/home/CategoryShowcase';
 

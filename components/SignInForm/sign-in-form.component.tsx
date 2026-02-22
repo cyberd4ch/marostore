@@ -5,7 +5,7 @@ import { useDispatch } from "react-redux";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import Button from "@/components/button/button.component";
-import { googleSignInStart, emailSignInStart } from "@/app/store/user/user.action";
+import { googleSignInStart, emailSignInStart } from "@/store/user/user.action";
 import { Apple, Chromium, Facebook, Loader2 } from "lucide-react";
 import { toast } from "sonner"; // Assuming sonner as used in your Cart component
 

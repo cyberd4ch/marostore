@@ -10,13 +10,13 @@ import {
     Package, ShieldCheck, Truck, CreditCard, Box
 } from "lucide-react";
 
-import { selectCartItems } from '../../app/store/cart/cart.selector';
+import { selectCartItems } from '../../store/cart/cart.selector';
 import {
     addItemToCart,
     removeItemFromCart,
     clearItemFromCart,
-} from '../../app/store/cart/cart.action';
-import { CartItem as TCartItem } from '../../app/store/cart/cart.types';
+} from '../../store/cart/cart.action';
+import { CartItem as TCartItem } from '../../store/cart/cart.types';
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

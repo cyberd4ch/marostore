@@ -3,7 +3,7 @@
 import { useEffect, useState, Suspense } from "react";
 import { useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
-import { selectCurrentUser } from "@/app/store/user/user.selector";
+import { selectCurrentUser } from "@/store/user/user.selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import SignInForm from "@/components/SignInForm/sign-in-form.component";
 import SignUpForm from "@/components/SignUpForm/sign-up-form.component";

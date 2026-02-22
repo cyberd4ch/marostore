@@ -9,10 +9,10 @@ import { ChevronLeft, ChevronRight, Heart, Star, ShoppingCart, Zap, ArrowRight }
 import { toast } from 'sonner';
 
 import SHOP_DATA from '@/app/utils/shop/shop-data';
-import { addItemToCart } from '@/app/store/cart/cart.action';
-import { selectCartItems } from '@/app/store/cart/cart.selector';
-import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
-import { toggleItemInWishlist } from '@/app/store/wishlist/wishlist.action';
+import { addItemToCart } from '@/store/cart/cart.action';
+import { selectCartItems } from '@/store/cart/cart.selector';
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
+import { toggleItemInWishlist } from '@/store/wishlist/wishlist.action';
 import { cn } from '@/lib/utils';
 
 interface ShopItem {

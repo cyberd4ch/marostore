@@ -3,7 +3,7 @@
 
 import Image from 'next/image';
 import { FC } from 'react';
-import { CartItem as TCartItem } from '../../app/store/cart/cart.types';
+import { CartItem as TCartItem } from '../../store/cart/cart.types';
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Trash2 } from 'lucide-react';
 

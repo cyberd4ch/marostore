@@ -2,8 +2,8 @@
 
 import { useDispatch, useSelector } from 'react-redux';
 import { ShoppingCart } from 'lucide-react';
-import { setIsCartOpen } from '@/app/store/cart/cart.action';
-import { selectCartCount, selectIsCartOpen } from '@/app/store/cart/cart.selector';
+import { setIsCartOpen } from '@/store/cart/cart.action';
+import { selectCartCount, selectIsCartOpen } from '@/store/cart/cart.selector';
 
 export default function CartIcon() {
     const dispatch = useDispatch();

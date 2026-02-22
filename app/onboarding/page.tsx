@@ -5,8 +5,8 @@ import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
 import { db, auth } from "@/app/utils/firebase/firebase.utils";
-import { selectCurrentUser } from "@/app/store/user/user.selector";
-import { checkUserSession } from "@/app/store/user/user.action";
+import { selectCurrentUser } from "@/store/user/user.selector";
+import { checkUserSession } from "@/store/user/user.action";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

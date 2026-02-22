@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
-import { fetchCategoriesStart } from '@/app/store/categories/category.action';
+import { fetchCategoriesStart } from '@/store/categories/category.action';
 
 export default function ShopLayout({
     children,

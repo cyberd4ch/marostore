@@ -2,10 +2,10 @@
 
 import { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { addItemToCart } from '@/app/store/cart/cart.action';
-import { selectCartItems } from '@/app/store/cart/cart.selector';
-import { toggleItemInWishlist } from '@/app/store/wishlist/wishlist.action';
-import { selectWishlistItems } from '@/app/store/wishlist/wishlist.selector';
+import { addItemToCart } from '@/store/cart/cart.action';
+import { selectCartItems } from '@/store/cart/cart.selector';
+import { toggleItemInWishlist } from '@/store/wishlist/wishlist.action';
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
 
 import { Button } from '@/components/ui/button';
 import { ShoppingCart, Heart, Truck, RefreshCcw } from 'lucide-react';

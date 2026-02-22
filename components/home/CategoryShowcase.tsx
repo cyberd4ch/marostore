@@ -4,7 +4,7 @@ import { FC } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Search, ArrowRight } from 'lucide-react';
-import { CategoryItem } from '../../app/store/categories/category.types';
+import { CategoryItem } from '../../store/categories/category.types';
 
 // We define a Map for the background colors based on category names
 const CATEGORY_STYLES: Record<string, string> = {

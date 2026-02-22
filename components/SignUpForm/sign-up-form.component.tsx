@@ -13,7 +13,7 @@ import {
   CardTitle 
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { signUpStart, googleSignInStart } from "@/app/store/user/user.action";
+import { signUpStart, googleSignInStart } from "@/store/user/user.action";
 import { ArrowRight, Loader2, Chrome, Github } from "lucide-react";
 import { toast } from "sonner";
 

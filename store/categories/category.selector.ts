@@ -1,5 +1,5 @@
 import { createSelector } from 'reselect';
-import SHOP_DATA from '../../utils/shop/shop-data';
+import SHOP_DATA from '../../app/utils/shop/shop-data';
 
 import { RootState } from '../store';
 import { CategoriesState } from './category.reducer';

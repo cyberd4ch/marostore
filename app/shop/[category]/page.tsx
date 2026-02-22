@@ -9,7 +9,7 @@ import Spinner from '@/components/spinner/spinner.component';
 import {
     selectCategoriesMap,
     selectCategoriesIsLoading,
-} from '@/app/store/categories/category.selector';
+} from '@/store/categories/category.selector';
 
 export default function CategoryPage() {
     const { category } = useParams<{ category: string }>();

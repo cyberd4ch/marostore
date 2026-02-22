@@ -5,7 +5,7 @@ import {
     Action,
     ActionWithPayload,
     withMatcher,
-} from '../../utils/reducer/reducer.utils';
+} from '../../app/utils/reducer/reducer.utils';
 
 export type FetchCategoriesStart =
     Action<CATEGORIES_ACTION_TYPES.FETCH_CATEGORIES_START>;

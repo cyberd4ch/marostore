@@ -9,14 +9,14 @@ import {
     Wallet, CheckCircle2, Info
 } from "lucide-react";
 
-import { selectCartItems } from '../store/cart/cart.selector';
+import { selectCartItems } from '../../store/cart/cart.selector';
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-import { selectCurrentUser } from '../store/user/user.selector';
+import { selectCurrentUser } from '../../store/user/user.selector';
 
 const PaymentPage = () => {
     const cartItems = useSelector(selectCartItems);

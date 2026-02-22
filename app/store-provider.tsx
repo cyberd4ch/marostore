@@ -3,10 +3,10 @@
 import { useEffect } from "react";
 import { useDispatch } from "react-redux";
 import { Provider } from "react-redux";
-import { store, persistor } from "@/app/store/store";
+import { store, persistor } from "@/store/store";
 import { PersistGate } from "redux-persist/integration/react";
 import { onAuthStateChangedListener } from "@/app/utils/firebase/firebase.utils";
-import { checkUserSession } from "@/app/store/user/user.action";
+import { checkUserSession } from "@/store/user/user.action";
 
 export const StoreProvider = ({ children }: { children: React.ReactNode }) => {
     return (
