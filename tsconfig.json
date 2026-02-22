@@ -1,6 +1,12 @@
 {
   "compilerOptions": {
     "target": "es5",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@store/*": ["src/store/*"],
+      "@marostore/shared": ["../shared/dist"]
+    },
     "downlevelIteration": true,
     "lib": [
       "dom",
@@ -22,15 +28,7 @@
       {
         "name": "next"
       }
-    ],
-    "paths": {
-      "@/*": [
-        "./*"
-      ],
-      "@marostore/shared": [
-        "../shared/dist"
-      ]
-    }
+    ]
   },
   "include": [
     "next-env.d.ts",

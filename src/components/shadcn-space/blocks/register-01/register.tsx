@@ -16,6 +16,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 
+
 const RegisterForm = () => {
   return (
     <section className="bg-primary dark:bg-background min-h-screen relative flex items-center justify-center">

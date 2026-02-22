@@ -2,7 +2,7 @@
 'use client';
 
 import { useState } from 'react';
-import { authApi } from '@/src/lib/api-client';
+import { authApi } from '@/lib/api-client';
 
 export function ApiDebug() {
     const [status, setStatus] = useState<string>('Ready');

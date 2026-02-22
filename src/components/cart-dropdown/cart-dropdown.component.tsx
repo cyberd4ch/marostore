@@ -17,7 +17,7 @@ import {
     clearItemFromCart,
 } from '../../store/cart/cart.action';
 import { CartItem as TCartItem } from '../../store/cart/cart.types';
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "../ui/badge";
 import { Card, CardContent, CardHeader, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 

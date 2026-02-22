@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner'; // Assuming you use sonner for notifications like the other component
 
 import SHOP_DATA from '@/app/utils/shop/shop-data'; 
-import { addItemToCart } from '@/store/cart/cart.action';
+import { addItemToCart } from '@store/cart/cart.action'; // Assuming this action exists and is properly set up
 import { selectCartItems } from '@/store/cart/cart.selector';
 import { EasterCountdown } from '@/components/countdown/EasterCountdown';
 
