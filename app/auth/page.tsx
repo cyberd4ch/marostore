@@ -5,8 +5,8 @@ import { useSelector } from "react-redux";
 import { useRouter, useSearchParams } from "next/navigation";
 import { selectCurrentUser } from "@/app/store/user/user.selector";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SignInForm from "@/components/sign-in-form/sign-in-form.component";
-import SignUpForm from "@/components/sign-up-form/sign-up-form.component";
+import SignInForm from "@/components/SignInForm/sign-in-form.component";
+import SignUpForm from "@/components/SignUpForm/sign-up-form.component";
 import { Loader2 } from "lucide-react";
 
 // Move the logic into a sub-component to wrap it in Suspense
