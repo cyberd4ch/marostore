@@ -1,53 +1,76 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import type { Product } from '@/services/productService';
+import React from "react";
+import Image from "next/image";
+import { motion } from "framer-motion";
+import { Heart, ShoppingCart } from "lucide-react";
+
+interface Product {
+    id: string | number;
+    name: string;
+    price: number;
+    image?: string;
+    imageUrl?: string; // Handling both common naming conventions
+    category?: string;
+}
 
 interface ProductCardProps {
-    product: any;
-    compact?: boolean;
+    product: Product;
 }
 
-export default function ProductCard({ product, compact = false }: ProductCardProps) {
-    return (
-        <Card className={compact ? 'product-card compact' : 'product-card'}>
-            <CardHeader className="pb-2">
-                <div className="relative w-full h-48 mb-2">
-                    <Image
-                        src={product.image}
-                        alt={product.title}
-                        fill
-                        className="object-contain p-2"
-                        sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    />
-                </div>
-                <CardTitle className="text-base font-medium line-clamp-2">
-                    {product.title}
-                </CardTitle>
-            </CardHeader>
+const ProductCard = ({ product }: ProductCardProps) => {
+    // Safe Check for image source
+    const displayImage = product.imageUrl || product.image || "/placeholder.png";
 
-            <CardContent className="flex-grow pb-2">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                    {product.description}
-                </p>
-                <div className="mt-2 flex items-center justify-between">
-                    <span className="text-lg font-bold text-primary">
-                        ${product.price.toFixed(2)}
-                    </span>
-                    <span className="text-xs bg-secondary px-2 py-1 rounded-full">
+    return (
+        <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            whileHover={{ y: -8 }}
+            className="group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-xl"
+        >
+            {/* Image Container with 4:5 Aspect Ratio */}
+            <div className="relative aspect-[4/5] w-full overflow-hidden bg-gray-100">
+                <Image
+                    src={displayImage}
+                    alt={product.name}
+                    fill
+                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                    className="object-cover transition-transform duration-500 group-hover:scale-110"
+                    priority={false}
+                />
+
+                {/* Overlay Actions */}
+                <div className="absolute right-3 top-3 flex flex-col gap-2 opacity-0 transition-opacity duration-300 group-hover:opacity-100">
+                    <button className="rounded-full bg-white p-2 text-gray-900 shadow-md hover:bg-red-50 hover:text-red-500">
+                        <Heart size={18} />
+                    </button>
+                </div>
+            </div>
+
+            {/* Content Section */}
+            <div className="flex flex-col p-4">
+                {product.category && (
+                    <span className="mb-1 text-xs font-medium uppercase tracking-wider text-gray-400">
                         {product.category}
                     </span>
-                </div>
-            </CardContent>
+                )}
+                <h3 className="line-clamp-1 text-lg font-semibold text-gray-800">
+                    {product.name}
+                </h3>
 
-            <CardFooter>
-                <Button asChild className="w-full">
-                    <Link href={`/products/${product.id}`}>View Details</Link>
-                </Button>
-            </CardFooter>
-        </Card>
+                <div className="mt-4 flex items-center justify-between">
+                    <p className="text-xl font-bold text-gray-900">
+                        ${product.price.toFixed(2)}
+                    </p>
+                    <button className="flex items-center gap-2 rounded-lg bg-gray-900 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-gray-700">
+                        <ShoppingCart size={16} />
+                        Add
+                    </button>
+                </div>
+            </div>
+        </motion.div>
     );
-}
+};
+
+export default ProductCard;
