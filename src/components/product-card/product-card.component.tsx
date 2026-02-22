@@ -9,9 +9,9 @@ import { useDispatch, useSelector } from 'react-redux';
 
 import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
 import { toggleItemInWishlist } from '@/store/wishlist/wishlist.action';
-import { selectCartItems } from '../../store/cart/cart.selector';
-import { addItemToCart } from '../../store/cart/cart.action';
-import { CategoryItem } from '../../store/categories/category.types';
+import { selectCartItems } from '@/store/cart/cart.selector'; // Changed to @
+import { addItemToCart } from '@/store/cart/cart.action';      // Changed to @
+import { CategoryItem } from '@/store/categories/category.types'; // Changed to @
 
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
