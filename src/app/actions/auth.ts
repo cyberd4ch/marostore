@@ -1,8 +1,8 @@
 // src/app/actions/auth.ts
 'use server';
 
-import { authApi } from '@/src/lib/api-client';
-import { LoginRequestSchema } from '@/src/lib/schemas';
+import { authApi } from '@/lib/api-client';
+import { LoginRequestSchema } from '@/lib/schemas';
 import { cookies } from 'next/headers';
 
 export async function loginAction(formData: FormData) {
