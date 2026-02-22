@@ -55,7 +55,7 @@ function AuthContent() {
                     <SignInForm onSwitchToSignUp={() => setActiveTab("signup")} />
                 </TabsContent>
                 <TabsContent value="signup" className="border-none p-0 outline-none">
-                    <SignUpForm onSwitchToSignIn={() => setActiveTab("signin")} />
+                    <SignUpForm onSwitchToSignIn={() => router.push("/auth/register")} />
                 </TabsContent>
             </Tabs>
         </div>
