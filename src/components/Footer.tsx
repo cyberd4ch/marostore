@@ -56,17 +56,24 @@ const Footer = () => {
                         </div>
                     </div>
 
-                    <div className="w-full lg:w-md space-y-4">
-                        <h4 className="text-sm font-bold uppercase tracking-widest">Join the Movement</h4>
-                        <div className="flex gap-2">
+                    <div className="w-full max-w-sm space-y-4">
+                        <h4 className="text-sm font-bold uppercase tracking-widest text-white">
+                            Join the Movement
+                        </h4>
+                        <div className="flex flex-col sm:flex-row items-stretch gap-0 border border-slate-800 focus-within:border-slate-400 transition-colors">
                             <Input
                                 placeholder="email@newsletter.com"
-                                className="bg-transparent border-slate-800 rounded-none h-12 text-white focus-visible:ring-slate-700"
+                                className="bg-transparent border-none rounded-none h-12 text-white focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-slate-600 grow"
                             />
-                            <Button className="bg-white text-black hover:bg-slate-200 rounded-none h-12 px-8 font-bold">
-                                SUBSCRIBE
+                            <Button
+                                className="bg-white text-black hover:bg-slate-200 rounded-none h-12 px-6 font-bold text-xs uppercase tracking-tighter shrink-0"
+                            >
+                                Subscribe
                             </Button>
                         </div>
+                        <p className="text-[10px] text-slate-500 italic">
+                            *Get updates on new drops and exclusive MoMo-only deals.
+                        </p>
                     </div>
                 </div>
 
@@ -98,25 +105,17 @@ const Footer = () => {
                     </div>
                     <div className="space-y-8">
                         <div>
-                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Secure Payment via Paystack</h5>
-                            <div className="flex flex-wrap gap-3 items-center opacity-80 transition-opacity hover:opacity-100">
-                                {/* MoMo Badge */}
-                                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded flex items-center gap-1">
-                                    <Smartphone size={12} className="text-yellow-500" />
-                                    <span className="text-[9px] font-bold text-slate-200">MOMO</span>
+                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Secure Checkout</h5>
+                            <div className="flex items-center gap-3">
+                                {/* Simple MoMo representation */}
+                                <div className="flex -space-x-1">
+                                    <div className="w-6 h-6 rounded-full bg-yellow-400 border-2 border-black z-30" title="MTN" />
+                                    <div className="w-6 h-6 rounded-full bg-red-600 border-2 border-black z-20" title="Telecel" />
+                                    <div className="w-6 h-6 rounded-full bg-blue-500 border-2 border-black z-10" title="AirtelTigo" />
                                 </div>
-
-                                {/* Bank Transfer Badge */}
-                                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded flex items-center gap-1">
-                                    <span className="text-[9px] font-bold text-slate-200">BANK TRANSFER</span>
-                                </div>
-
-                                {/* Paystack text logo */}
-                                <span className="text-[10px] font-black tracking-tighter text-slate-500">
-                                    PAYSTACK
-                                </span>
+                                <div className="h-4 w-px bg-slate-800 mx-1" />
+                                <span className="text-[10px] font-bold text-slate-400">PAYSTACK | BANK</span>
                             </div>
-                            <p className="mt-2 text-[10px] text-slate-500">Supported: MTN, Telecel, AirtelTigo</p>
                         </div>
                         <div>
                             <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Shipping</h5>
