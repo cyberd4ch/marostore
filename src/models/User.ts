@@ -20,6 +20,6 @@ const UserSchema = new Schema({
 }, { timestamps: true });
 
 // This prevents Mongoose from creating the model multiple times during Next.js hot reloads
-const User = models.User || model('User', UserSchema);
+const User = models.User || model('User', UserSchema, 'users');
 
 export default User;
