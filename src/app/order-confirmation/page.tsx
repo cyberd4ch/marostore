@@ -45,6 +45,7 @@ const PaymentPage = () => {
                 body: JSON.stringify({
                     email: userEmail,
                     amount: totalPayable,
+                    callback_url: `${window.location.origin}/shop/checkout/success`,
                     metadata: {
                         custom_fields: [
                             {
