@@ -13,6 +13,13 @@ import {
     AdditionalInformation,
 } from '../../app/utils/firebase/firebase.utils';
 
+export type SetGuestEmail = ActionWithPayload<USER_ACTION_TYPES.SET_GUEST_EMAIL, string>;
+
+export const setGuestEmail = withMatcher(
+    (email: string): SetGuestEmail => 
+        createAction(USER_ACTION_TYPES.SET_GUEST_EMAIL, email)
+);
+
 export type CheckUserSession = Action<USER_ACTION_TYPES.CHECK_USER_SESSION>;
 
 export type SetCurrentUser = ActionWithPayload<

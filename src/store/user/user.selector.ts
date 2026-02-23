@@ -12,3 +12,7 @@ export const selectCurrentUser = createSelector(
     selectUserReducer,
     (user): UserData | null => user?.currentUser as UserData | null
 );
+export const selectGuestEmail = createSelector(
+    [selectUserReducer],
+    (user) => user.guestEmail
+);

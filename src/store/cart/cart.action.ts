@@ -101,3 +101,4 @@ export const clearItemFromCart = (
 export const clearAllItemsFromCart = () => {
     return setCartItems([]); // Simply sets the cart to an empty array
 };
+

@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import {
@@ -16,7 +16,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
-import { selectCurrentUser } from '../../store/user/user.selector';
+import { Mail } from "lucide-react"; // Add Mail icon
+import { setGuestEmail } from '../../store/user/user.action'; // Use your action creator
+
+
+
+import { selectCurrentUser, selectGuestEmail } from '../../store/user/user.selector';
+import { error } from 'console';
 
 const PaymentPage = () => {
     const cartItems = useSelector(selectCartItems);
@@ -25,12 +31,25 @@ const PaymentPage = () => {
     const [isProcessing, setIsProcessing] = useState(false);
     const [momoNumber, setMomoNumber] = useState('');
 
+const guestEmail = useSelector(selectGuestEmail);
+const dispatch = useDispatch();
+
+const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({ 
+    type: 'user/SET_GUEST_EMAIL', 
+    payload: e.target.value 
+});
+
     const cartTotal = cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
     const shippingCost = cartTotal > 200 ? 0 : 20;
     const totalPayable = cartTotal + shippingCost;
 
     const handlePayment = useCallback(async () => {
-        const userEmail = currentUser?.email || 'guest@example.com';
+        const userEmail = currentUser?.email || guestEmail;
+
+        if (!userEmail || !userEmail.includes('@')) {
+            toast.error("Please provide a valid email address for your receipt.");
+            return;
+        }
 
         if (cartItems.length === 0) {
             toast.error("Your cart is empty");
@@ -99,6 +118,32 @@ const PaymentPage = () => {
 
                 <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
                     <div className="space-y-6">
+                        {!currentUser && (
+                            <Card className="rounded-[2.5rem] border-none bg-white shadow-sm overflow-hidden">
+                                <CardHeader className="bg-slate-100 p-8">
+                                    <CardTitle className="text-xl flex items-center gap-2 text-slate-900">
+                                        <Mail className="h-5 w-5" />
+                                        Contact Information
+                                    </CardTitle>
+                                    <p className="text-slate-500 text-sm">Where should we send your digital receipt?</p>
+                                </CardHeader>
+                                <CardContent className="p-8">
+                                    <div className="space-y-3">
+                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</label>
+                                        <div className="relative">
+                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
+                                            <Input
+                                                type="email"
+                                                value={guestEmail || ''}
+                                                onChange={onEmailChange}
+                                                placeholder="alex@example.com"
+                                                className="h-14 pl-12 rounded-2xl border-slate-200 focus:ring-slate-900 focus:border-slate-900 text-lg"
+                                            />
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
                         <Card className="rounded-[2.5rem] border-none bg-white shadow-sm overflow-hidden">
                             <CardHeader className="bg-slate-900 text-white p-8">
                                 <CardTitle className="text-xl flex items-center gap-2">
