@@ -1,3 +1,4 @@
+import ProductCard from '@/components/ProductCard';
 import ProductGallery from '@/components/products/ProductGallery';
 import ProductInfo from '@/components/products/ProductInfo';
 import AddToCart from '@/components/products/AddToCart';
@@ -25,6 +26,10 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
             </div>
         );
     }
+
+    const relatedProducts = allProducts
+        .filter((item) => item.category === productData.category && String(item.id) !== id)
+        .slice(0, 4);
 
     // Map data and add some mock data to match the Shadcn UI screenshot
     const displayProduct = {
@@ -55,6 +60,22 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                     <AddToCart product={displayProduct} />
                 </div>
             </div>
+            {relatedProducts.length > 0 && (
+                <div className="pt-16 border-t border-slate-100">
+                    <div className="flex flex-col gap-2 mb-10">
+                        <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">
+                            You Might Also Like
+                        </h3>
+                        <div className="h-1 w-12 bg-slate-900 rounded-full" />
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                        {relatedProducts.map((product) => (
+                            <ProductCard key={product.id} product={product} />
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
