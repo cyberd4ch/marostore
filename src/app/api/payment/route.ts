@@ -26,9 +26,9 @@ export async function POST(request: Request) {
             // Optional: add channels to restrict to mobile_money
             channels: ['card', 'mobile_money'],
             currency: 'GHS',
-            callback_url: process.env.NEXT_PUBLIC_BASE_URL 
-        ? `${process.env.NEXT_PUBLIC_BASE_URL}/shop/checkout/success` 
-        : 'http://localhost:3000/shop/checkout/success',
+            callback_url: process.env.NODE_ENV === 'production'
+                ? 'https://marostore-nine.vercel.app/shop/checkout/success'
+                : 'http://localhost:3000/shop/checkout/success',
         });
 
         // 3. Initialize transaction
