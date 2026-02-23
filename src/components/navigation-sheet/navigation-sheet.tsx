@@ -82,7 +82,7 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                                         <X className="h-6 w-6 text-slate-400" />
                                     </button>
                                     <Link href="/" onClick={toggleDrawer} className="block">
-                                        <span className="text-2xl font-black tracking-tighter text-slate-900 uppercase">
+                                        <span className="text-2xl font-black tracking-tighter text-slate-900">
                                             marostore
                                         </span>
                                     </Link>
