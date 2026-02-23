@@ -41,7 +41,9 @@ const Footer = () => {
                 {/* Top Section: Logo & Newsletter */}
                 <div className="flex flex-col lg:flex-row justify-between items-start gap-12 mb-20">
                     <div className="space-y-6 max-w-sm">
-                        <h2 className="text-4xl font-black tracking-tighter italic">MARO.</h2>
+                        <span className="text-2xl font-extrabold tracking-tighter text-white transition-colors hover:text-slate-300 md:text-3xl">
+                            marostore
+                        </span>
                         <p className="text-slate-400 text-sm leading-relaxed">
                             Maro Store is a curated destination for premium, high-fashion, and sustainable apparel.
                             Creating social change through style.
@@ -96,17 +98,32 @@ const Footer = () => {
                     </div>
                     <div className="space-y-8">
                         <div>
-                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">We Accept</h5>
-                            <div className="flex flex-wrap gap-2 grayscale opacity-70">
-                                {/* Replace with actual payment SVGs later */}
-                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
-                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
-                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
+                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Secure Payment via Paystack</h5>
+                            <div className="flex flex-wrap gap-3 items-center opacity-80 transition-opacity hover:opacity-100">
+                                {/* MoMo Badge */}
+                                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                                    <Smartphone size={12} className="text-yellow-500" />
+                                    <span className="text-[9px] font-bold text-slate-200">MOMO</span>
+                                </div>
+
+                                {/* Bank Transfer Badge */}
+                                <div className="bg-slate-900 border border-slate-800 px-2 py-1 rounded flex items-center gap-1">
+                                    <span className="text-[9px] font-bold text-slate-200">BANK TRANSFER</span>
+                                </div>
+
+                                {/* Paystack text logo */}
+                                <span className="text-[10px] font-black tracking-tighter text-slate-500">
+                                    PAYSTACK
+                                </span>
                             </div>
+                            <p className="mt-2 text-[10px] text-slate-500">Supported: MTN, Telecel, AirtelTigo</p>
                         </div>
                         <div>
                             <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Shipping</h5>
-                            <p className="text-slate-400 text-xs tracking-tighter font-black">DHL GLOBAL EXPRESS</p>
+                            <div className="flex items-center gap-2">
+                                <div className="h-1 w-4 bg-yellow-500" /> {/* DHL Yellow accent */}
+                                <p className="text-slate-200 text-xs tracking-tighter font-black uppercase">DHL Global Express</p>
+                            </div>
                         </div>
                     </div>
                 </div>
