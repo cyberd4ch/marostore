@@ -16,3 +16,8 @@ export const selectGuestEmail = createSelector(
     [selectUserReducer],
     (user) => user.guestEmail
 );
+
+export const selectIsAdmin = createSelector(
+    [selectCurrentUser],
+    (currentUser) => currentUser?.isAdmin === true
+);

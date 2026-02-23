@@ -20,6 +20,7 @@ export type UserData = {
     displayName: string;
     email: string;
     username: string; // This fixes your "property does not exist" error
+    isAdmin: boolean;
     createdAt: any;
     address?: string;
     city?: string;
