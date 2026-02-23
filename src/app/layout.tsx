@@ -2,6 +2,7 @@ import { StoreProvider } from "@/app/store-provider";
 import { Providers } from './providers';
 import { Space_Grotesk, DM_Serif_Display } from 'next/font/google';
 import Navigation from '@/app/routes/navigation';
+import Footer from '@/components/Footer';
 import localFont from 'next/font/local';
 import './globals.css';
 import React from 'react';
@@ -25,6 +26,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               <StoreProvider>
                 <Navigation>
                   {children}
+                  <Footer />
                 </Navigation>
               </StoreProvider>
               <Toaster position="top-right" richColors />

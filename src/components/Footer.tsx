@@ -1,0 +1,129 @@
+"use client";
+
+import Link from "next/link";
+import {
+    Instagram,
+    Facebook,
+    Twitter,
+    Youtube,
+    Smartphone, // Using as a proxy for TikTok style
+    ArrowRight
+} from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+
+const footerLinks = {
+    company: [
+        { title: "About Us", href: "/about" },
+        { title: "Manifesto", href: "/manifesto" },
+        { title: "Sustainability", href: "/sustainability" },
+        { title: "Social Impact", href: "/impact" },
+        { title: "Blog", href: "/blog" },
+    ],
+    help: [
+        { title: "Contact Us", href: "/contact" },
+        { title: "FAQs", href: "/faq" },
+        { title: "Shipping Costs", href: "/shipping" },
+        { title: "Order History", href: "/orders" },
+    ],
+    information: [
+        { title: "Customer Care", href: "/care" },
+        { title: "Terms & Conditions", href: "/terms" },
+        { title: "Privacy Policy", href: "/privacy" },
+        { title: "Sitemap", href: "/sitemap" },
+    ]
+};
+
+const Footer = () => {
+    return (
+        <footer className="bg-black text-white pt-20 pb-10">
+            <div className="container mx-auto px-6">
+                {/* Top Section: Logo & Newsletter */}
+                <div className="flex flex-col lg:flex-row justify-between items-start gap-12 mb-20">
+                    <div className="space-y-6 max-w-sm">
+                        <h2 className="text-4xl font-black tracking-tighter italic">MARO.</h2>
+                        <p className="text-slate-400 text-sm leading-relaxed">
+                            Maro Store is a curated destination for premium, high-fashion, and sustainable apparel.
+                            Creating social change through style.
+                        </p>
+                        <div className="flex gap-4">
+                            <Instagram size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+                            <Facebook size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+                            <Twitter size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+                            <Youtube size={20} className="text-slate-400 hover:text-white cursor-pointer" />
+                        </div>
+                    </div>
+
+                    <div className="w-full lg:w-md space-y-4">
+                        <h4 className="text-sm font-bold uppercase tracking-widest">Join the Movement</h4>
+                        <div className="flex gap-2">
+                            <Input
+                                placeholder="email@newsletter.com"
+                                className="bg-transparent border-slate-800 rounded-none h-12 text-white focus-visible:ring-slate-700"
+                            />
+                            <Button className="bg-white text-black hover:bg-slate-200 rounded-none h-12 px-8 font-bold">
+                                SUBSCRIBE
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Middle Section: Links Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-10 border-t border-slate-900 pt-16 pb-20">
+                    <div>
+                        <h5 className="font-bold uppercase tracking-widest text-xs mb-8">Company</h5>
+                        <ul className="space-y-4">
+                            {footerLinks.company.map((link) => (
+                                <li key={link.title}><Link href={link.href} className="text-slate-400 hover:text-white text-sm transition-colors">{link.title}</Link></li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 className="font-bold uppercase tracking-widest text-xs mb-8">Help & Support</h5>
+                        <ul className="space-y-4">
+                            {footerLinks.help.map((link) => (
+                                <li key={link.title}><Link href={link.href} className="text-slate-400 hover:text-white text-sm transition-colors">{link.title}</Link></li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div>
+                        <h5 className="font-bold uppercase tracking-widest text-xs mb-8">Information</h5>
+                        <ul className="space-y-4">
+                            {footerLinks.information.map((link) => (
+                                <li key={link.title}><Link href={link.href} className="text-slate-400 hover:text-white text-sm transition-colors">{link.title}</Link></li>
+                            ))}
+                        </ul>
+                    </div>
+                    <div className="space-y-8">
+                        <div>
+                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">We Accept</h5>
+                            <div className="flex flex-wrap gap-2 grayscale opacity-70">
+                                {/* Replace with actual payment SVGs later */}
+                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
+                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
+                                <div className="bg-slate-800 h-6 w-10 rounded-sm" />
+                            </div>
+                        </div>
+                        <div>
+                            <h5 className="font-bold uppercase tracking-widest text-xs mb-4">Shipping</h5>
+                            <p className="text-slate-400 text-xs tracking-tighter font-black">DHL GLOBAL EXPRESS</p>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Bottom Section: Copyright */}
+                <div className="flex flex-col md:flex-row justify-between items-center pt-10 border-t border-slate-900">
+                    <p className="text-slate-500 text-[10px] uppercase tracking-widest">
+                        © {new Date().getFullYear()} MARO STORE. ALL RIGHTS RESERVED.
+                    </p>
+                    <div className="mt-4 md:mt-0 flex gap-6 text-[10px] uppercase tracking-widest text-slate-500">
+                        <Link href="/privacy" className="hover:text-white">Privacy</Link>
+                        <Link href="/terms" className="hover:text-white">Terms</Link>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    );
+};
+
+export default Footer;
