@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSelector, useDispatch } from 'react-redux'; // Added useDispatch
 import { useSearchParams } from 'next/navigation';
 import { Check, Loader2, ShoppingBag } from 'lucide-react';
@@ -10,50 +10,80 @@ import { selectCartItems, selectCartTotal } from '@/store/cart/cart.selector';
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { clearAllItemsFromCart } from '@/store/cart/cart.action';
+import { selectCurrentUser, selectGuestEmail } from '@/store/user/user.selector';
+import { toast } from 'sonner';
+import { Download } from 'lucide-react'; 
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const SuccessPage = () => {
-    const searchParams = useSearchParams();
+const searchParams = useSearchParams();
     const reference = searchParams.get('reference');
-    const dispatch = useDispatch(); // Initialize dispatch correctly
+    const dispatch = useDispatch();
+    const hasFinalized = useRef(false);
 
-    // Note: We capture these before we clear the cart so they show on the receipt
     const cartItems = useSelector(selectCartItems);
     const total = useSelector(selectCartTotal);
+    const currentUser = useSelector(selectCurrentUser);
+    const guestEmail = useSelector(selectGuestEmail);
+
+    // Note: We capture these before we clear the cart so they show on the receipt
 
     const [isVerifying, setIsVerifying] = useState(true);
 
     // Inside SuccessPage.tsx useEffect
-    useEffect(() => {
+useEffect(() => {
         const finalizeOrder = async () => {
-            if (!reference || !cartItems.length) return;
+            // Guard clause: Ensure we have a reference, items, and haven't run this yet
+            if (!reference || cartItems.length === 0 || hasFinalized.current) {
+                if (hasFinalized.current) setIsVerifying(false);
+                return;
+            }
+
+            hasFinalized.current = true;
+            const userEmail = currentUser?.email || guestEmail;
 
             try {
-                // Trigger the email
-                await fetch('/api/send-email', {
+                // 1. SAVE TO MONGODB
+                const orderResponse = await fetch('/api/orders/create', {
                     method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        email: "customer@example.com", // Get this from currentUser selector
-                        orderId: reference,
-                        cartItems: cartItems,
-                        total: total,
+                        orderReference: reference,
+                        customerEmail: userEmail || 'Guest',
+                        items: cartItems,
+                        totalAmount: total,
+                        momoNumber: "N/A", 
                     }),
                 });
 
-                // Clear cart after email is triggered
-                dispatch(clearAllItemsFromCart());
-                setIsVerifying(false);
+                if (orderResponse.ok) {
+                    // 2. TRIGGER CONFIRMATION EMAIL
+                    await fetch('/api/send-email', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            email: userEmail,
+                            orderId: reference,
+                            cartItems: cartItems,
+                            total: total,
+                        }),
+                    });
+
+                    toast.success("Order secured and confirmation sent!");
+                    dispatch(clearAllItemsFromCart());
+                }
             } catch (error) {
-                console.error("Email trigger failed", error);
+                console.error("Finalization error:", error);
+                toast.error("Error saving order record.");
+            } finally {
                 setIsVerifying(false);
             }
         };
 
-        const timer = setTimeout(() => {
-            finalizeOrder();
-        }, 1500);
-
+        const timer = setTimeout(finalizeOrder, 1500);
         return () => clearTimeout(timer);
-    }, [reference, dispatch]); // Removed reference from dependency to prevent re-clearing if ref changes
+    }, [reference, cartItems, currentUser, guestEmail, total, dispatch]);// Removed reference from dependency to prevent re-clearing if ref changes
 
     if (isVerifying) {
         return (
@@ -63,6 +93,56 @@ const SuccessPage = () => {
             </div>
         );
     }
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+
+        // Header
+        doc.setFontSize(22);
+        doc.setTextColor(0, 0, 0);
+        doc.text("MARO STORE", 14, 20);
+        
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text(`Order Reference: ${reference}`, 14, 30);
+        doc.text(`Date: ${new Date().toLocaleDateString()}`, 14, 35);
+        doc.text(`Customer: ${currentUser?.email || guestEmail || 'Guest'}`, 14, 40);
+
+        // Table
+        const tableColumn = ["Product", "Quantity", "Price (GHS)", "Subtotal"];
+        const tableRows: any[] = [];
+
+        cartItems.forEach(item => {
+            const itemData = [
+                item.name,
+                item.quantity,
+                `₵${item.price.toFixed(2)}`,
+                `₵${(item.price * item.quantity).toFixed(2)}`
+            ];
+            tableRows.push(itemData);
+        });
+
+        autoTable(doc, {
+            startY: 50,
+            head: [tableColumn],
+            body: tableRows,
+            theme: 'grid',
+            headStyles: { fillColor: [0, 0, 0] },
+        });
+
+        // Total
+        const finalY = (doc as any).lastAutoTable.finalY + 10;
+        doc.setFontSize(14);
+        doc.setTextColor(0, 0, 0);
+        doc.text(`Total Paid: ₵${total.toFixed(2)}`, 14, finalY);
+
+        // Footer
+        doc.setFontSize(10);
+        doc.setTextColor(150);
+        doc.text("Thank you for shopping with Maro Store!", 14, finalY + 20);
+
+        doc.save(`MaroStore_Receipt_${reference}.pdf`);
+    };
 
     return (
         <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center p-4">
@@ -112,6 +192,15 @@ const SuccessPage = () => {
                     <span className="text-slate-500 font-medium">Total Paid</span>
                     <span className="text-2xl font-bold text-slate-900">₵{total.toFixed(2)}</span>
                 </div>
+
+<Button 
+                    variant="outline" 
+                    onClick={generatePDF}
+                    className="w-full h-12 mb-3 border-slate-200 text-slate-600 rounded-2xl font-bold flex gap-2 transition-all hover:bg-slate-50"
+                >
+                    <Download size={18} />
+                    Download Receipt (PDF)
+                </Button>
 
                 <Link href="/shop" className="w-full">
                     <Button className="w-full h-14 bg-black text-white hover:bg-slate-800 rounded-2xl font-bold flex gap-2">

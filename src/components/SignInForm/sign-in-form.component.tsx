@@ -34,28 +34,21 @@ const SignInForm: FC<SignInFormProps> = ({ onSwitchToSignUp }) => {
         // as the page will usually redirect or refresh.
     };
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-        dispatch(emailSignInStart(email, password));
-        setIsLoading(true);
+const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsLoading(true);
+    const loginToast = toast.loading("Verifying credentials...");
 
-        // We fire the toast immediately to give feedback
-        const loginToast = toast.loading("Verifying credentials...");
+    // Only dispatch once
+    dispatch(emailSignInStart(email, password));
 
-        try {
-            dispatch(emailSignInStart(email, password));
-            // We clear the loading toast after a brief delay 
-            // Sagas will handle the actual navigation/error state globally
-            setTimeout(() => {
-                toast.dismiss(loginToast);
-                setIsLoading(false);
-            }, 2000);
-        } catch (error) {
-            toast.error("Sign in failed. Please check your credentials.");
-            toast.dismiss(loginToast);
-            setIsLoading(false);
-        }
-    };
+    // We keep the UI loading until the Saga finishes or a timeout occurs
+    // In a perfect setup, you'd use a Redux selector for 'isLoading'
+    setTimeout(() => {
+        toast.dismiss(loginToast);
+        setIsLoading(false);
+    }, 3000);
+};
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;

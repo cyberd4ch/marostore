@@ -1,30 +1,54 @@
 'use client';
 
-import { useSelector } from 'react-redux';
-import { selectIsAdmin } from '@/store/user/user.selector';
-import { redirect } from 'next/navigation';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { LayoutDashboard, ShoppingBag, ListOrdered, Home } from 'lucide-react';
+
+const sidebarLinks = [
+    { name: 'Analytics', href: '/dashboard', icon: LayoutDashboard },
+    { name: 'Products', href: '/dashboard/products', icon: ShoppingBag },
+    { name: 'Orders', href: '/dashboard/orders', icon: ListOrdered },
+];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const isAdmin = useSelector(selectIsAdmin);
-
-    // In a real app, you'd also check if the user is logged in
-    // For now, if not admin, kick them to the home page
-    if (!isAdmin) {
-        redirect('/'); 
-    }
+    const pathname = usePathname();
 
     return (
         <div className="flex min-h-screen bg-slate-50">
-            <aside className="w-64 bg-black text-white p-6">
-                <h2 className="font-bold tracking-widest uppercase mb-10">Maro Admin</h2>
-                <nav className="space-y-4">
-                    <p className="text-slate-400 text-xs font-bold uppercase">Management</p>
-                    <div className="flex flex-col gap-2">
-                        {/* Add NavLinks here */}
-                    </div>
+            {/* Sidebar */}
+            <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col p-6 sticky top-0 h-screen">
+                <div className="mb-10 px-2">
+                    <h2 className="text-2xl font-black tracking-tighter">MARO ADMIN</h2>
+                </div>
+                
+                <nav className="flex-1 space-y-2">
+                    {sidebarLinks.map((link) => {
+                        const Icon = link.icon;
+                        const isActive = pathname === link.href;
+                        return (
+                            <Link 
+                                key={link.href} 
+                                href={link.href}
+                                className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
+                                    isActive ? 'bg-black text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'
+                                }`}
+                            >
+                                <Icon size={20} />
+                                {link.name}
+                            </Link>
+                        );
+                    })}
                 </nav>
+
+                <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-400 font-medium hover:text-black transition-colors border-t mt-auto">
+                    <Home size={20} /> Back to Store
+                </Link>
             </aside>
-            <main className="flex-1">{children}</main>
+
+            {/* Main Content */}
+            <main className="flex-1 overflow-y-auto">
+                {children}
+            </main>
         </div>
     );
 }

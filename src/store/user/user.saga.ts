@@ -3,6 +3,7 @@ import { User } from 'firebase/auth';
 
 import { USER_ACTION_TYPES } from './user.types';
 
+
 import {
     signInSuccess,
     signInFailed,
@@ -30,15 +31,34 @@ export function* getSnapshotFromUserAuth(
     additionalDetails?: AdditionalInformation
 ) {
     try {
+        // 1. Sync with MongoDB first to get Admin privileges
+        const response = yield* call(fetch, '/api/user/sync', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+                email: userAuth.email,
+                username: userAuth.displayName 
+            }),
+        });
+
+        const mongoUser = yield* call([response, response.json]);
+
+        // 2. Still create/get the Firestore document for legacy compatibility
         const userSnapshot = yield* call(
             createUserDocumentFromAuth,
             userAuth,
             additionalDetails
         );
 
+        // 3. MERGE EVERYTHING: 
+        // Priority: Firebase ID + Firestore Data + MongoDB 'isAdmin' flag
         if (userSnapshot) {
             yield* put(
-                signInSuccess({ id: userSnapshot.id, ...userSnapshot.data() })
+                signInSuccess({ 
+                    id: userSnapshot.id, 
+                    ...userSnapshot.data(), // Firestore data
+                    ...mongoUser            // Overwrite/add MongoDB fields (like isAdmin)
+                })
             );
         }
     } catch (error) {
