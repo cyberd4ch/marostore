@@ -40,7 +40,7 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
     const productLink = `/shop/products/${product.id}`;
 
     // --- HANDLERS ---
-    const handleAddToCart = (e: React.MouseEvent) => {
+    const handleAddToCart = (e: React.MouseEvent) => {x
         e.preventDefault();
         e.stopPropagation(); // Stops the Link from triggering
         dispatch(addItemToCart(cartItems, product as any));
