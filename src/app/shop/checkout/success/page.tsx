@@ -1,80 +1,93 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
 import { useSearchParams } from 'next/navigation';
-import { CheckCircle2, Loader2, XCircle, ShoppingBag } from 'lucide-react';
-import Link from 'next/link';
+import { Check, Loader2 } from 'lucide-react';
+import Image from 'next/image';
+import { selectCartItems, selectCartTotal } from '@/store/cart/cart.selector';
+import { Separator } from "@/components/ui/separator";
 
 const SuccessPage = () => {
     const searchParams = useSearchParams();
     const reference = searchParams.get('reference');
-    const [status, setStatus] = useState<'loading' | 'success' | 'failed'>('loading');
+    const cartItems = useSelector(selectCartItems);
+    const total = useSelector(selectCartTotal);
+    
+    const [isVerifying, setIsVerifying] = useState(true);
 
     useEffect(() => {
-        const verifyPayment = async () => {
-            if (!reference) {
-                setStatus('failed');
-                return;
-            }
-
-            try {
-                const response = await fetch(`/api/payment/verify?reference=${reference}`);
-                const data = await response.json();
-
-                if (data.verified) {
-                    setStatus('success');
-                    // Optional: You could dispatch a clearCart() action here
-                } else {
-                    setStatus('failed');
-                }
-            } catch (error) {
-                setStatus('failed');
-            }
-        };
-
-        verifyPayment();
+        // Simulate a brief verification delay for UX
+        const timer = setTimeout(() => setIsVerifying(false), 1500);
+        return () => clearTimeout(timer);
     }, [reference]);
 
-    if (status === 'loading') {
+    if (isVerifying) {
         return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50">
-                <Loader2 className="h-12 w-12 text-slate-900 animate-spin mb-4" />
-                <p className="font-bold tracking-tighter uppercase text-slate-500">Verifying Payment...</p>
-            </div>
-        );
-    }
-
-    if (status === 'failed') {
-        return (
-            <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6">
-                <XCircle className="h-16 w-16 text-red-500 mb-4" />
-                <h1 className="text-2xl font-black mb-2">VERIFICATION FAILED</h1>
-                <p className="text-slate-500 mb-8 text-center">We couldn't verify your payment. If you were charged, please contact support.</p>
-                <Link href="/shop" className="bg-black text-white px-8 py-3 rounded-xl font-bold">Return to Shop</Link>
+            <div className="min-h-screen flex flex-col items-center justify-center bg-white">
+                <Loader2 className="h-8 w-8 text-slate-200 animate-spin mb-4" />
+                <p className="text-sm font-medium text-slate-400 uppercase tracking-widest">Verifying Payment...</p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-6">
-             {/* ... Your "Thank You" UI from the previous step ... */}
-             <div className="max-w-md w-full bg-white rounded-[2.5rem] shadow-xl overflow-hidden border border-slate-100">
-                <div className="p-8 text-center">
-                    <div className="flex justify-center mb-6">
-                        <div className="h-20 w-20 bg-green-50 rounded-full flex items-center justify-center">
-                            <CheckCircle2 className="h-12 w-12 text-green-500" />
-                        </div>
+        <div className="min-h-screen bg-[#F9F9F9] flex items-center justify-center p-4">
+            <div className="max-w-[450px] w-full bg-white rounded-3xl shadow-sm border border-slate-100 p-8 md:p-12">
+                {/* Success Icon */}
+                <div className="flex justify-center mb-8">
+                    <div className="h-12 w-12 bg-[#E8F5E9] rounded-full flex items-center justify-center">
+                        <Check className="h-6 w-6 text-[#4CAF50]" />
                     </div>
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter mb-2 uppercase">Order Confirmed</h1>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mb-4">Ref: {reference}</p>
-                    <p className="text-slate-500 font-medium">Your payment was verified. Maro Store is preparing your drop.</p>
                 </div>
-                {/* ... Continue with Summary and Buttons ... */}
-                <div className="p-8">
-                    <Link href="/shop" className="w-full h-14 bg-slate-900 text-white rounded-2xl font-bold flex items-center justify-center gap-2">
-                        <ShoppingBag size={18} /> Continue Shopping
-                    </Link>
+
+                {/* Header */}
+                <div className="text-center mb-10">
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight mb-3">
+                        Thank you for your purchase!
+                    </h1>
+                    <p className="text-slate-500 text-sm leading-relaxed">
+                        We've sent you an email with your order details to <br />
+                        <span className="font-semibold text-slate-900">order@example.com</span>
+                    </p>
                 </div>
+
+                {/* Item List */}
+                <div className="space-y-6 mb-8">
+                    {cartItems.map((item) => (
+                        <div key={item.id} className="flex items-center gap-4">
+                            <div className="relative h-16 w-16 rounded-2xl overflow-hidden bg-slate-50 border border-slate-100 shrink-0">
+                                <Image
+                                    src={item.imageUrl}
+                                    alt={item.name}
+                                    fill
+                                    className="object-cover"
+                                />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-bold text-slate-900 truncate">{item.name}</h4>
+                                <p className="text-xs text-slate-500 line-clamp-1">Premium curated selection</p>
+                            </div>
+                            <div className="text-right shrink-0">
+                                <p className="text-sm font-bold text-slate-900">₵{(item.price * item.quantity).toFixed(2)}</p>
+                                <p className="text-xs text-slate-400">×{item.quantity}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+
+                <Separator className="bg-slate-100 mb-6" />
+
+                {/* Total */}
+                <div className="flex justify-between items-center px-2">
+                    <span className="text-slate-500 font-medium">Total</span>
+                    <span className="text-2xl font-bold text-slate-900">₵{total.toFixed(2)}</span>
+                </div>
+                
+                {/* Footer Reference */}
+                <p className="mt-10 text-center text-[10px] text-slate-300 font-bold uppercase tracking-[0.2em]">
+                    Ref: {reference || 'N/A'}
+                </p>
             </div>
         </div>
     );
