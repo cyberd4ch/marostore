@@ -8,29 +8,21 @@ import CategoryPreview from '@/components/category-preview/category-preview.comp
 import Spinner from '@/components/spinner/spinner.component';
 
 export default function ShopPage() {
-    // 1. Explicitly type the data source
-    const categoriesMap = SHOP_DATA as Record<string, any>;
+    // If SHOP_DATA is an array, we map directly. If it's an object, we use Object.values
+    const categories = Array.isArray(SHOP_DATA) ? SHOP_DATA : Object.values(SHOP_DATA);
     const isLoading = useSelector(selectCategoriesIsLoading);
 
     if (isLoading) return <Spinner />;
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col gap-16 md:gap-24">
-            {Object.keys(categoriesMap).map((title) => {
-                // 2. Access the category object safely
-                const categoryObject = categoriesMap[title];
-                
-                // 3. Extract items (handling the structure SHOP_DATA uses)
-                const products = categoryObject?.items || [];
-                
-                return (
-                    <CategoryPreview 
-                        key={title} 
-                        title={title} 
-                        products={products} 
-                    />
-                );
-            })}
+            {categories.map((category: any) => (
+                <CategoryPreview 
+                    key={category.id || category.title} 
+                    title={category.title} // PASS THE ACTUAL TITLE HERE
+                    products={category.items || []} 
+                />
+            ))}
         </div>
     );
 }
