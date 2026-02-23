@@ -1,9 +1,9 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Heart, ShoppingCart, Eye } from "lucide-react";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "sonner";
@@ -13,6 +13,8 @@ import { selectCartItems } from "@/store/cart/cart.selector";
 import { toggleItemInWishlist } from "@/store/wishlist/wishlist.action";
 import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
 import { cn } from "@/lib/utils";
+
+import QuickViewModal from "./QuickViewModal";
 
 interface Product {
     id: string | number;
@@ -32,9 +34,11 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
     const dispatch = useDispatch();
     const cartItems = useSelector(selectCartItems);
     const wishlistItems = useSelector(selectWishlistItems);
-    
+
     const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
     const displayImage = product.imageUrl || product.image || "/placeholder.png";
+
+    const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
 
     // Create the dynamic link path
     const productLink = `/shop/products/${product.id}`;
@@ -57,8 +61,8 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
     const handleQuickView = (e: React.MouseEvent) => {
         e.preventDefault();
         e.stopPropagation();
-        toast.info("Opening Quick View..."); 
-        // Logic for opening a modal would go here
+        toast.info("Opening Quick View...");
+        setIsQuickViewOpen(true);
     };
 
     return (
@@ -66,9 +70,8 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             whileHover={{ y: -8 }}
-            className={`group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-xl ${
-                compact ? "p-2" : ""
-            }`}
+            className={`group relative flex flex-col overflow-hidden rounded-xl bg-white shadow-sm transition-all hover:shadow-xl ${compact ? "p-2" : ""
+                }`}
         >
             {/* Wrap Image in Link for Navigation */}
             <Link href={productLink} className="relative aspect-[4/5] w-full overflow-hidden bg-gray-100 rounded-lg block">
@@ -82,15 +85,15 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
 
                 {/* Floating Actions Overlay */}
                 <div className="absolute right-3 top-3 flex flex-col gap-2 opacity-0 translate-x-4 transition-all duration-300 group-hover:opacity-100 group-hover:translate-x-0">
-                    <button 
+                    <button
                         onClick={handleToggleFavorite}
                         className="rounded-full bg-white p-2 text-gray-900 shadow-md hover:bg-red-50"
                     >
                         <Heart size={18} className={cn(isFavorite ? "fill-red-500 text-red-500" : "")} />
                     </button>
-                    
+
                     {/* NEW: Quick View Button */}
-                    <button 
+                    <button
                         onClick={handleQuickView}
                         className="rounded-full bg-white p-2 text-gray-900 shadow-md hover:bg-slate-100"
                     >
@@ -98,6 +101,15 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
                     </button>
                 </div>
             </Link>
+            <AnimatePresence>
+                {isQuickViewOpen && (
+                    <QuickViewModal
+                        product={product}
+                        onClose={() => setIsQuickViewOpen(false)}
+                        onAddToCart={() => dispatch(addItemToCart(cartItems, product as any))}
+                    />
+                )}
+            </AnimatePresence>
 
             {/* Content Section */}
             <div className={compact ? "p-2" : "flex flex-col p-4"}>
@@ -108,9 +120,8 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
                 )}
 
                 <Link href={productLink}>
-                    <h3 className={`font-bold text-slate-900 line-clamp-1 hover:underline decoration-slate-300 underline-offset-4 ${
-                        compact ? "text-xs" : "text-lg"
-                    }`}>
+                    <h3 className={`font-bold text-slate-900 line-clamp-1 hover:underline decoration-slate-300 underline-offset-4 ${compact ? "text-xs" : "text-lg"
+                        }`}>
                         {product.name}
                     </h3>
                 </Link>
@@ -121,7 +132,7 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
                     </p>
 
                     {!compact && (
-                        <button 
+                        <button
                             onClick={handleAddToCart}
                             className="flex items-center gap-2 rounded-lg bg-slate-900 px-4 py-2 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-slate-700 active:scale-95"
                         >
