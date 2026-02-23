@@ -37,7 +37,7 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
     const displayImage = product.imageUrl || product.image || "/placeholder.png";
 
     // Create the dynamic link path
-    const productLink = `/shop/${product.id}`;
+    const productLink = `/shop/product/${product.id}`;
 
     // --- HANDLERS ---
     const handleAddToCart = (e: React.MouseEvent) => {
