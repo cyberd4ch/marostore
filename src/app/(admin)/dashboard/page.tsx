@@ -1,14 +1,21 @@
 "use client";
 import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { 
-    LayoutDashboard, Users, ShoppingBag, DollarSign, 
-    TrendingUp, Loader2, ShoppingCart, UserCircleIcon, 
-    AlertTriangle, ArrowRight, CheckCircle 
+import {
+    LayoutDashboard, Users, ShoppingBag, DollarSign,
+    TrendingUp, Loader2, ShoppingCart, UserCircleIcon,
+    AlertTriangle, ArrowRight, CheckCircle
 } from "lucide-react";
 import { auth } from "../../utils/firebase/firebase.utils";
 import { SalesChart } from '@/components/admin/SalesChart';
 import Link from 'next/link';
+
+interface User {
+    uid: string;
+    displayName: string | null;
+    email: string;
+    isAdmin: boolean;
+}
 
 const AdminDashboard = () => {
     const [stats, setStats] = useState([
@@ -19,8 +26,8 @@ const AdminDashboard = () => {
     ]);
     const [loading, setLoading] = useState(true);
     const [inventory, setInventory] = useState<any[]>([]);
-    const [orders, setOrders] = useState<any[]>([]); 
-    const [usersData, setUsersData] = useState<any[]>([]); 
+    const [orders, setOrders] = useState<any[]>([]);
+    const [usersData, setUsersData] = useState<any[]>([]);
 
     // Memoized Top Products calculation
     const topProducts = useMemo(() => {
@@ -38,9 +45,9 @@ const AdminDashboard = () => {
         return Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
     }, [orders]);
 
-    const lowStockItems = useMemo(() => 
-        inventory.filter((item: any) => item.stock !== undefined && item.stock < 5), 
-    [inventory]);
+    const lowStockItems = useMemo(() =>
+        inventory.filter((item: any) => item.stock !== undefined && item.stock < 5),
+        [inventory]);
 
     useEffect(() => {
         const fetchAllData = async (user: any) => {
@@ -54,11 +61,11 @@ const AdminDashboard = () => {
                     fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } }),
                 ]);
 
-                if (!prodRes.ok || !orderRes.ok || !usersRes.ok) throw new Error("Failed to fetch");
+                if (!prodRes.ok || !orderRes.ok) throw new Error("Failed to fetch");
 
                 const products = await prodRes.json();
                 const fetchedOrders = await orderRes.json();
-                const fetchedUsers = await usersRes.json();
+                const fetchedUsers = usersRes.ok ? await usersRes.json() : [];
 
                 setInventory(products);
                 setOrders(fetchedOrders);

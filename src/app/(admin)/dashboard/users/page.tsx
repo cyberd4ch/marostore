@@ -7,6 +7,13 @@ import { Switch } from "@/components/ui/switch"; // Ensure you have this shadcn 
 import { toast } from 'sonner';
 import { Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
 
+interface User {
+    uid: string;
+    displayName: string | null;
+    email: string;
+    isAdmin: boolean;
+}
+
 export default function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -67,12 +74,12 @@ export default function UserManagement() {
                                 <TableCell className="text-slate-500">{user.email}</TableCell>
                                 <TableCell>
                                     <div className="flex items-center gap-3">
-                                        <Switch 
-                                            checked={user.isAdmin} 
+                                        <Switch
+                                            checked={user.isAdmin}
                                             onCheckedChange={() => toggleAdmin(user.uid, !!user.isAdmin)}
                                         />
-                                        {user.isAdmin ? 
-                                            <ShieldCheck className="text-green-600" size={18} /> : 
+                                        {user.isAdmin ?
+                                            <ShieldCheck className="text-green-600" size={18} /> :
                                             <ShieldAlert className="text-slate-300" size={18} />
                                         }
                                     </div>

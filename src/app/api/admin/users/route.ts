@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
-import { db } from '@/app/utils/firebase/firebase.utils';
+import { auth, db } from '@/app/utils/firebase/firebase.utils';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 // GET: Fetch all registered users
 export async function GET() {
@@ -20,18 +21,31 @@ export async function GET() {
     }
 }
 
-// PATCH: Toggle admin status
 export async function PATCH(req: Request) {
-    try {
-        const { uid, isAdmin } = await req.json();
+  try {
+    const authHeader = req.headers.get('Authorization');
+    const token = authHeader?.split('Bearer ')[1];
 
-        if (!uid) return NextResponse.json({ error: "UID required" }, { status: 400 });
+    if (!token) return NextResponse.json({ error: "No token" }, { status: 401 });
 
-        const userDocRef = doc(db, 'users', uid);
-        await updateDoc(userDocRef, { isAdmin });
-
-        return NextResponse.json({ success: true });
-    } catch (error: any) {
-        return NextResponse.json({ error: "Update failed" }, { status: 500 });
+    // Verify the token using the ADMIN SDK
+    const decodedToken = await adminAuth.verifyIdToken(token);
+    
+    if (!decodedToken.admin) {
+        return NextResponse.json({ error: "Not an admin" }, { status: 403 });
     }
+
+    const { uid, isAdmin } = await req.json();
+
+    // 1. Update the Auth Token (The actual permission)
+    await adminAuth.setCustomUserClaims(uid, { admin: isAdmin });
+
+    // 2. Update Firestore (So your GET list reflects the change)
+    await adminDb.collection('users').doc(uid).update({ isAdmin });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error(error);
+    return NextResponse.json({ error: "Fruit cake collapse" }, { status: 500 });
+  }
 }
