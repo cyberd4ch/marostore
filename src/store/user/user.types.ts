@@ -17,14 +17,14 @@ export enum USER_ACTION_TYPES {
 // Add this interface
 export type UserData = {
     id: string;
-    displayName: string;
     email: string;
-    username: string; // This fixes your "property does not exist" error
-    isAdmin: boolean;
+    displayName: string;
     createdAt: any;
+    // Add these fields to match MongoDB + Onboarding
+    username?: string;
+    isAdmin?: boolean;
+    onboardingCompleted?: boolean;
+    phoneNumber?: string;
     address?: string;
     city?: string;
-    phoneNumber?: string;
-    clothingSize?: string;
-    stylePreference?: string;
 };

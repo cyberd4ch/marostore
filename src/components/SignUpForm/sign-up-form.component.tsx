@@ -1,146 +1,90 @@
-"use client";
+'use client';
 
-import { useState, FormEvent, ChangeEvent } from "react";
-import { useDispatch } from "react-redux";
-import { AuthError, AuthErrorCodes } from "firebase/auth";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { signUpStart, googleSignInStart } from "@/store/user/user.action";
-import { ArrowRight, Loader2, Chrome, Github } from "lucide-react";
-import { toast } from "sonner";
+import { useState, FormEvent, ChangeEvent } from 'react';
+import { useDispatch } from 'react-redux';
+import { signUpStart } from '@/store/user/user.action';
+import { Mail, Lock, User, Loader2 } from 'lucide-react';
 
 const defaultFormFields = {
-    displayName: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
+    displayName: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
 };
 
-export interface SignUpFormProps {
-    onSwitchToSignIn?: () => void;
-}
-
-const SignUpForm = ({ onSwitchToSignIn }: SignUpFormProps) => {
-    const dispatch = useDispatch();
+export default function SignUpForm({ onSwitchToSignIn }: { onSwitchToSignIn: () => void }) {
     const [formFields, setFormFields] = useState(defaultFormFields);
-    const [isLoading, setIsLoading] = useState(false);
     const { displayName, email, password, confirmPassword } = formFields;
-
-    const resetFormFields = () => setFormFields(defaultFormFields);
+    const dispatch = useDispatch();
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
         if (password !== confirmPassword) {
-            toast.error("Passwords do not match");
+            alert("Passwords do not match");
             return;
         }
 
         setIsLoading(true);
-        const signupToast = toast.loading("Creating your account...");
-
         try {
+            // This triggers the Saga: 1. Firebase Auth -> 2. MongoDB Sync
             dispatch(signUpStart(email, password, displayName));
-            // Sagas handle navigation; cleanup locally
-            setTimeout(() => {
-                toast.dismiss(signupToast);
-                setIsLoading(false);
-            }, 2000);
         } catch (error) {
-            toast.dismiss(signupToast);
+            console.error('User creation encountered an error', error);
+        } finally {
             setIsLoading(false);
-            if ((error as AuthError).code === AuthErrorCodes.EMAIL_EXISTS) {
-                toast.error("This email is already in use");
-            } else {
-                toast.error("Sign up failed. Please try again.");
-            }
         }
     };
 
     const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
-        setFormFields((prev) => ({ ...prev, [name]: value }));
+        setFormFields({ ...formFields, [name]: value });
     };
 
     return (
-        <Card className="border-none shadow-none bg-transparent">
-            <CardHeader className="text-center p-0 mb-8">
-                <div className="flex flex-col gap-2">
-                    <CardTitle className="text-3xl font-black tracking-tight text-slate-900 uppercase">
-                        Join Maro Store
-                    </CardTitle>
-                    <CardDescription className="text-slate-500 font-medium">
-                        Create your account to start your premium experience
-                    </CardDescription>
+        <div className="flex flex-col w-full">
+            <h2 className="text-2xl font-black tracking-tighter mb-2">Create Account</h2>
+            <p className="text-slate-500 text-sm mb-8">Join Maro Store to start your fashion journey.</p>
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Full Name</label>
+                    <div className="relative">
+                        <User className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                        <input className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                               type='text' required name='displayName' value={displayName} onChange={handleChange} placeholder="John Doe"/>
+                    </div>
                 </div>
-            </CardHeader>
-            <CardContent className="p-0">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                        <Button 
-                            variant="outline" 
-                            type="button" 
-                            onClick={() => dispatch(googleSignInStart())}
-                            className="rounded-xl border-slate-200 h-11 font-bold text-xs uppercase tracking-widest"
-                        >
-                            <Chrome className="mr-2 h-4 w-4" /> Google
-                        </Button>
-                        <Button 
-                            variant="outline" 
-                            type="button" 
-                            className="rounded-xl border-slate-200 h-11 font-bold text-xs uppercase tracking-widest"
-                        >
-                            <Github className="mr-2 h-4 w-4" /> Github
-                        </Button>
+
+                <div className="space-y-1">
+                    <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Email</label>
+                    <div className="relative">
+                        <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
+                        <input className="w-full pl-10 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                               type='email' required name='email' value={email} onChange={handleChange} placeholder="name@example.com"/>
                     </div>
-
-                    <div className="relative my-6">
-                        <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-100" /></div>
-                        <div className="relative flex justify-center text-xs uppercase font-bold tracking-widest">
-                            <span className="bg-white px-4 text-slate-400">or use email</span>
-                        </div>
-                    </div>
-
-                    <div className="space-y-3">
-                        <div className="space-y-1">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Full Name</Label>
-                            <Input name="displayName" placeholder="John Doe" required value={displayName} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
-                        </div>
-                        <div className="space-y-1">
-                            <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Email Address</Label>
-                            <Input name="email" type="email" placeholder="m@example.com" required value={email} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
-                        </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Password</Label>
-                                <Input name="password" type="password" required value={password} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
-                            </div>
-                            <div className="space-y-1">
-                                <Label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 ml-1">Confirm</Label>
-                                <Input name="confirmPassword" type="password" required value={confirmPassword} onChange={handleChange} className="bg-slate-50/50 border-slate-200 rounded-xl h-11 focus-visible:ring-slate-900" />
-                            </div>
-                        </div>
-                    </div>
-
-                    <Button type="submit" disabled={isLoading} className="w-full h-12 bg-slate-900 hover:bg-black text-white rounded-xl font-black tracking-widest mt-4">
-                        {isLoading ? <Loader2 className="h-5 w-5 animate-spin" /> : <span className="flex items-center">CREATE ACCOUNT <ArrowRight className="ml-2 h-4 w-4" /></span>}
-                    </Button>
-                </form>
-
-                <div className="mt-8 text-center text-sm">
-                    <span className="text-slate-500 font-medium">Already a member? </span>
-                    <button onClick={onSwitchToSignIn} className="font-bold text-slate-900 hover:underline underline-offset-4">Sign In</button>
                 </div>
-            </CardContent>
-        </Card>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Password</label>
+                        <input className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                               type='password' required name='password' value={password} onChange={handleChange} placeholder="••••••••"/>
+                    </div>
+                    <div className="space-y-1">
+                        <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">Confirm</label>
+                        <input className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none" 
+                               type='password' required name='confirmPassword' value={confirmPassword} onChange={handleChange} placeholder="••••••••"/>
+                    </div>
+                </div>
+
+                <button type="submit" disabled={isLoading} className="w-full bg-black text-white py-4 rounded-xl font-bold hover:bg-slate-800 transition-all flex items-center justify-center">
+                    {isLoading ? <Loader2 className="animate-spin" /> : 'Sign Up'}
+                </button>
+            </form>
+            <button onClick={onSwitchToSignIn} className="mt-6 text-sm font-bold text-slate-500 hover:text-black transition-colors">
+                Already have an account? Sign In
+            </button>
+        </div>
     );
-};
-
-export default SignUpForm;
+}

@@ -5,8 +5,10 @@ import Navigation from '@/app/routes/navigation';
 import Footer from '@/components/Footer';
 import localFont from 'next/font/local';
 import './globals.css';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Toaster } from 'sonner';
+import OnboardingGuard from "@/components/OnboardingGuard";
+
 
 
 const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space-grotesk' });
@@ -17,21 +19,23 @@ export const metadata = {
   description: 'Online shopping for classy clothes and accessories',
 };
 
+// Remove the useEffect and router imports from here!
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${spaceGrotesk.variable} ${dmSerifDisplay.variable}`}>
       <body className="font-sans">
-        <React.StrictMode>
-          <Providers>
-              <StoreProvider>
-                <Navigation>
-                  {children}
-                  <Footer />
-                </Navigation>
-              </StoreProvider>
-              <Toaster position="top-right" richColors />
-          </Providers>
-        </React.StrictMode>
+        <Providers>
+          <StoreProvider>
+            {/* Add the Guard here inside the providers */}
+            <OnboardingGuard>
+              <Navigation>
+                {children}
+                <Footer />
+              </Navigation>
+            </OnboardingGuard>
+          </StoreProvider>
+          <Toaster position="top-right" richColors />
+        </Providers>
       </body>
     </html>
   );
