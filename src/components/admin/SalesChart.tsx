@@ -52,7 +52,7 @@ export const SalesChart = ({ orders }: SalesChartProps) => {
                             />
                             <Tooltip 
                                 contentStyle={{ borderRadius: '15px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)' }}
-                                formatter={(value: number) => [`₵${value.toFixed(2)}`, 'Revenue']}
+                                formatter={(value: any) => [`₵${Number(value || 0).toFixed(2)}`, 'Revenue']}
                             />
                             <Area 
                                 type="monotone" 
