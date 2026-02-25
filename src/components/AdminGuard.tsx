@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 // We no longer need useRouter since we are showing the UnauthorizedScreen instead of redirecting
-import { auth, getUserDocument } from '@/app/utils/firebase/firebase.utils'; 
+import { auth, getUserDocument } from '@/app/utils/firebase/firebase.utils';
 import { onAuthStateChanged } from 'firebase/auth';
 import { LoadingScreen, UnauthorizedScreen } from './status-screens';
 
@@ -11,29 +11,28 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            // Case 1: No user is logged in
             if (!user) {
+                console.log("GUARD: No user found");
                 setStatus('unauthorized');
                 return;
             }
 
             try {
-                // Case 2: Check Firestore for isAdmin flag
                 const userDoc = await getUserDocument(user.uid);
+                console.log("GUARD: User Document Data ->", userDoc); // CHECK THIS IN CONSOLE
 
-                if (userDoc && userDoc.isAdmin) {
+                if (userDoc && userDoc.isAdmin === true) {
+                    console.log("GUARD: Access Granted");
                     setStatus('authorized');
                 } else {
-                    // Logged in but NOT an admin
-                    console.warn("Access denied: UID", user.uid, "is not an admin.");
+                    console.log("GUARD: Access Denied. isAdmin is:", userDoc?.isAdmin);
                     setStatus('unauthorized');
                 }
             } catch (error) {
-                console.error("Admin verification error:", error);
+                console.error("GUARD: Error ->", error);
                 setStatus('unauthorized');
             }
         });
-
         return () => unsubscribe();
     }, []);
 

@@ -20,10 +20,10 @@ import {
     query,
     getDocs,
     QueryDocumentSnapshot,
+    initializeFirestore // Import this
 } from "firebase/firestore";
 
 import { Category } from "../../../store/categories/category.types";
-import { getFirestore, initializeFirestore } from "firebase/firestore"; // CORRECT: Client SDK
 
 const firebaseConfig = {
     apiKey: "AIzaSyBDVHNvtx_cO9HeF95vI9U5RHr4rvucwkc",
@@ -35,6 +35,11 @@ const firebaseConfig = {
     measurementId: "G-8E2RJ2Z255"
 };
 
+const firebaseApp = initializeApp(firebaseConfig);
+
+export const db = initializeFirestore(firebaseApp, {
+    experimentalForceLongPolling: true,
+});
 
 
 // const config = {
@@ -42,13 +47,9 @@ const firebaseConfig = {
 //   measurementId: 'G-V6BJ556WCR',
 // };
 
-const firebaseApp = initializeApp(firebaseConfig);
 
 const googleProvider = new GoogleAuthProvider();
-
-googleProvider.setCustomParameters({
-    prompt: "select_account",
-});
+googleProvider.setCustomParameters({ prompt: "select_account" });
 
 export const auth = getAuth();
 export const signInWithGooglePopup = () =>
@@ -56,9 +57,6 @@ export const signInWithGooglePopup = () =>
 export const signInWithGoogleRedirect = () =>
     signInWithRedirect(auth, googleProvider);
 
-export const db = initializeFirestore(firebaseApp, {
-    experimentalForceLongPolling: true,
-});
 
 export type ObjectToAdd = {
     title: string;
@@ -103,18 +101,18 @@ export type UserData = {
 export const createUserDocumentFromAuth = async (
     userAuth: User,
     additionalInformation = {} as AdditionalInformation
-): Promise<QueryDocumentSnapshot<UserData> | undefined> => {
+) => {
     if (!userAuth) return;
 
     const userDocRef = doc(db, "users", userAuth.uid);
-    let userSnapshot = await getDoc(userDocRef);
+    const userSnapshot = await getDoc(userDocRef);
 
-    // If user doesn't exist, create it
     if (!userSnapshot.exists()) {
         const { displayName, email } = userAuth;
         const createdAt = new Date();
 
-        const adminEmails = ['lewisrodney21@yahoo.com']; // add others as needed
+        // Check if the user should be an admin based on email
+        const adminEmails = ['lewisrodney21@yahoo.com']; 
         const isAdmin = adminEmails.includes(email || '');
 
         try {
@@ -123,18 +121,15 @@ export const createUserDocumentFromAuth = async (
                 email,
                 createdAt,
                 isAdmin,
+                uid: userAuth.uid, // Storing UID in the doc helps the sync route
                 ...additionalInformation,
             });
-
-            // RE-FETCH: After creating the doc, fetch the new snapshot
-            userSnapshot = await getDoc(userDocRef);
         } catch (error) {
             console.log("error creating the user", error);
         }
     }
 
-    // Always return the most current snapshot available
-    return userSnapshot as QueryDocumentSnapshot<UserData>;
+    return userSnapshot;
 };
 
 export const createAuthUserWithEmailAndPassword = async (
@@ -180,7 +175,7 @@ export const getUserDocument = async (uid: string) => {
         const userSnapshot = await getDoc(userDocRef);
         
         if (userSnapshot.exists()) {
-            return userSnapshot.data(); // This must contain { isAdmin: true }
+            return userSnapshot.data(); 
         }
     } catch (error) {
         console.error("Error fetching user document:", error);
