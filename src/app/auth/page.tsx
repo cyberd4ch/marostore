@@ -1,4 +1,4 @@
-"use client";
+/* "use client";
 
 import { useEffect, useState, Suspense } from "react";
 import { useSelector } from "react-redux";
@@ -74,5 +74,41 @@ export default function AuthPage() {
                 <AuthContent />
             </Suspense>
         </div>
+    );
+} */
+
+"use client";
+
+import { Suspense } from "react";
+import { useRouter } from "next/navigation";
+import SignInForm from "@/components/SignInForm/sign-in-form.component"; // Adjust path if needed
+import { GalleryVerticalEnd, Loader2 } from "lucide-react";
+import Link from "next/link";
+
+export default function LoginPage() {
+    const router = useRouter();
+
+    return (
+        <main className="relative min-h-screen bg-white flex items-center justify-center overflow-hidden p-6">
+            <div className="pointer-events-none absolute inset-0 overflow-hidden md:block hidden">
+                <div className="absolute -right-[10%] -top-[10%] h-[1000px] w-[1000px] rounded-full bg-slate-50" />
+                <div className="absolute -left-[5%] bottom-0 h-[600px] w-[600px] rounded-full bg-slate-50/50" />
+            </div>
+
+            <div className="relative z-10 w-full max-w-[450px] space-y-8">
+                <Link href="/" className="flex items-center gap-3 self-center font-black text-xl tracking-tighter justify-center">
+                    <div className="bg-slate-900 text-white flex size-8 items-center justify-center rounded-lg">
+                        <GalleryVerticalEnd className="size-5" />
+                    </div>
+                    MARO STORE
+                </Link>
+
+                <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)]">
+                    <Suspense fallback={<Loader2 className="animate-spin mx-auto h-8 w-8 text-slate-200" />}>
+                        <SignInForm onSwitchToSignUp={() => router.push("/auth/register")} />
+                    </Suspense>
+                </div>
+            </div>
+        </main>
     );
 }
