@@ -11,13 +11,14 @@ import { toast } from "sonner";
 import { db } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { 
-    Loader2, User as UserIcon, Save, X, Edit2, 
-    Heart, Share2, Check, Phone, MapPin, Search 
+import {
+    Loader2, User as UserIcon, Save, X, Edit2,
+    Heart, Share2, Check, Phone, MapPin, Search
 } from "lucide-react";
 
 // Import the clear action if you want to use the "Clear History" feature later
 const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
+import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
 
 const UserProfile = () => {
     const router = useRouter();
@@ -37,7 +38,7 @@ const UserProfile = () => {
     const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
     const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed.items);
-    
+
     const isOwnProfile = currentUser && currentUser.username === username;
     const [editFields, setEditFields] = useState<any>({});
 
@@ -77,7 +78,7 @@ const UserProfile = () => {
     }, [view, loading]);
 
     // --- RESTORED HANDLERS ---
-    
+
     const handleShare = () => {
         const url = window.location.href;
         navigator.clipboard.writeText(url);
@@ -105,8 +106,10 @@ const UserProfile = () => {
     };
 
     const handleClearHistory = () => {
-        dispatch(clearRecentlyViewed());
-        toast.success("Browsing history cleared");
+        if (typeof clearRecentlyViewed === 'function') {
+            dispatch(clearRecentlyViewed());
+            toast.success("Browsing history cleared");
+        }
     };
 
     if (loading) return (
@@ -123,8 +126,8 @@ const UserProfile = () => {
 
                 {/* Profile Header */}
                 <div className="flex flex-col items-center mb-8 text-center relative">
-                    <button 
-                        onClick={handleShare} 
+                    <button
+                        onClick={handleShare}
                         className="absolute right-0 top-0 p-3 bg-white rounded-full shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95"
                     >
                         {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} className="text-slate-600" />}
