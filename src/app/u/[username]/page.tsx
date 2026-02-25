@@ -32,7 +32,7 @@ const UserProfile = () => {
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-
+    
     // HYDRATION SHIELD: Prevents Redux/LocalStorage mismatch errors (#310)
     const [isHydrated, setIsHydrated] = useState(false);
 
@@ -42,7 +42,7 @@ const UserProfile = () => {
 
     const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
-
+    
     const recentlyViewedItems = useSelector((state: any) => {
         try {
             return state.recentlyViewed?.items || [];
