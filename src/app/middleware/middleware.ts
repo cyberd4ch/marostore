@@ -2,12 +2,19 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
-    // 1. Get user data from cookies (requires you to set a cookie on login)
-    const userCompletedOnboarding = request.cookies.get('onboardingCompleted')?.value === 'true';
     const { pathname } = request.nextUrl;
+    
+    // 1. Skip middleware for all API routes explicitly
+    if (pathname.startsWith('/api')) {
+        return NextResponse.next();
+    }
 
-    // 2. If they haven't completed onboarding and aren't already on the onboarding page
-    if (!userCompletedOnboarding && !pathname.startsWith('/onboarding') && !pathname.startsWith('/login')) {
+    const userCompletedOnboarding = request.cookies.get('onboardingCompleted')?.value === 'true';
+
+    // 2. Optimized redirect logic
+    const isPublicPage = pathname.startsWith('/onboarding') || pathname.startsWith('/login') || pathname === '/';
+    
+    if (!userCompletedOnboarding && !isPublicPage) {
         return NextResponse.redirect(new URL('/onboarding', request.url));
     }
 
@@ -15,5 +22,6 @@ export function middleware(request: NextRequest) {
 }
 
 export const config = {
+    // This regex matches everything EXCEPT api, static files, and images
     matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
 };

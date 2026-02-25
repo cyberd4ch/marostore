@@ -12,24 +12,34 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             if (!user) {
-                console.log("GUARD: No user found");
                 setStatus('unauthorized');
                 return;
             }
 
+            // 1. Force permissions if it's your email
+            if (user.email === 'lewisrodney21@yahoo.com') {
+                try {
+                    const { doc, setDoc } = await import('firebase/firestore');
+                    const { db } = await import('@/app/utils/firebase/firebase.utils');
+                    await setDoc(doc(db, "users", user.uid), {
+                        isAdmin: true,
+                        email: user.email,
+                    }, { merge: true });
+                    console.log("👑 Permissions Forced.");
+                } catch (err) {
+                    console.error("Auto-fix failed:", err);
+                }
+            }
+
+            // 2. NOW fetch the document to update the UI status
             try {
                 const userDoc = await getUserDocument(user.uid);
-                console.log("GUARD: User Document Data ->", userDoc); // CHECK THIS IN CONSOLE
-
-                if (userDoc && userDoc.isAdmin === true) {
-                    console.log("GUARD: Access Granted");
+                if (userDoc?.isAdmin === true) {
                     setStatus('authorized');
                 } else {
-                    console.log("GUARD: Access Denied. isAdmin is:", userDoc?.isAdmin);
                     setStatus('unauthorized');
                 }
             } catch (error) {
-                console.error("GUARD: Error ->", error);
                 setStatus('unauthorized');
             }
         });

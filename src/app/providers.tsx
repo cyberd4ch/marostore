@@ -9,11 +9,11 @@ import { store, persistor } from '@/store/store';
 import { auth } from '@/app/utils/firebase/firebase.utils';
 import { onAuthStateChanged } from 'firebase/auth';
 
-import SessionChecker from '@/app/session-checker'; 
+import SessionChecker from '@/app/session-checker';
 // import ServiceWorkerRegistrar from '@/app/service-worker-registrar'; 
 
 export function Providers({ children }: { children: React.ReactNode }) {
-    
+
     // Auth Sync Logic
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -22,8 +22,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
                     const userData = {
                         uid: user.uid,
                         email: user.email,
-                        displayName: user.displayName,
-                        photoURL: user.photoURL,
+                        displayName: user.displayName || '',
+                        photoURL: user.photoURL || '',
                     };
 
                     await fetch('/api/user/sync', {
@@ -31,7 +31,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify(userData),
                     });
-                    
+
                     console.log('User synced successfully to Firestore');
                 } catch (error) {
                     console.error('Network error during user sync:', error);

@@ -6,6 +6,7 @@ export async function POST(req: Request) {
     try {
         // 1. Get user data from request body
         const body = await req.json();
+        console.log("SYNC ATTEMPT BODY:", body);
         const { email, uid, displayName, photoURL } = body;
 
         if (!uid || !email) {
