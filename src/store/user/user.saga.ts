@@ -1,5 +1,6 @@
 import { takeLatest, put, all, call } from 'typed-redux-saga';
 import { User } from 'firebase/auth';
+import { getDoc } from 'firebase/firestore';
 
 import { USER_ACTION_TYPES } from './user.types';
 
@@ -31,24 +32,23 @@ export function* getSnapshotFromUserAuth(
     additionalDetails?: AdditionalInformation
 ) {
     try {
-        // Create a URL-safe username slug from the display name
-        const safeUsername = userAuth.displayName 
-            ? userAuth.displayName.toLowerCase().replace(/\s+/g, '-') 
+        const safeUsername = userAuth.displayName
+            ? userAuth.displayName.toLowerCase().replace(/\s+/g, '-')
             : userAuth.email?.split('@')[0];
 
         // 1. Sync with MongoDB
         const response = yield* call(fetch, '/api/user/sync', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
+            body: JSON.stringify({
                 email: userAuth.email,
-                username: safeUsername // Use the safe version
+                username: safeUsername
             }),
         });
 
         const mongoUser = yield* call([response, response.json]);
 
-        // 2. Firestore Sync
+        // 2. Initial Firestore Sync
         const userSnapshot = yield* call(
             createUserDocumentFromAuth,
             userAuth,
@@ -56,11 +56,14 @@ export function* getSnapshotFromUserAuth(
         );
 
         if (userSnapshot) {
+            // 3. FORCE RE-FETCH: Get the freshest data (including onboarding fields)
+            const updatedSnapshot = yield* call(getDoc, userSnapshot.ref);
+
             yield* put(
-                signInSuccess({ 
-                    id: userSnapshot.id, 
-                    ...userSnapshot.data(),
-                    ...mongoUser // This now carries the correct isAdmin flag
+                signInSuccess({
+                    id: updatedSnapshot.id,
+                    ...updatedSnapshot.data(), // Fresh Firestore data
+                    ...mongoUser               // MongoDB flags
                 })
             );
         }

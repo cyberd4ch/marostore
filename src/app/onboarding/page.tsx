@@ -37,7 +37,7 @@ const OnboardingForm = () => {
         clothingSize: "M",
         stylePreference: "Casual"
     });
-useEffect(() => {
+    useEffect(() => {
         // Only run this check once Redux has finished loading
         if (isRehydrated && currentUser) {
             const user = currentUser as any;
@@ -106,38 +106,43 @@ useEffect(() => {
 
         try {
             const userDocRef = doc(db, "users", activeUid);
-    const username = formFields.displayName.toLowerCase().trim().replace(/\s+/g, '-');
+            const username = formFields.displayName.toLowerCase().trim().replace(/\s+/g, '-');
 
-    // --- USERNAME AVAILABILITY CHECK ---
-    const { collection, query, where, getDocs } = await import("firebase/firestore");
-    const usersRef = collection(db, "users");
-    const q = query(usersRef, where("username", "==", username));
-    const querySnapshot = await getDocs(q);
+            // --- USERNAME AVAILABILITY CHECK ---
+            const { collection, query, where, getDocs } = await import("firebase/firestore");
+            const usersRef = collection(db, "users");
+            const q = query(usersRef, where("username", "==", username));
+            const querySnapshot = await getDocs(q);
 
-    let finalUsername = username;
-    
-    // Real-world logic: If exists, append a short unique hash instead of failing
-    if (!querySnapshot.empty) {
-        finalUsername = `${username}-${activeUid.substring(0, 5)}`;
-    }
-    // -----------------------------------
+            let finalUsername = username;
+            if (!querySnapshot.empty) {
+                finalUsername = `${username}-${activeUid.substring(0, 5)}`;
+            }
 
-    await updateDoc(userDocRef, {
-        ...formFields,
-        username: finalUsername,
-        onboardingCompleted: true,
-        updatedAt: new Date(),
-    });
+            // --- UPDATE FIREBASE ---
+            await updateDoc(userDocRef, {
+                ...formFields,
+                username: finalUsername,
+                onboardingCompleted: true,
+                updatedAt: new Date(),
+            });
 
-    document.cookie = "onboardingCompleted=true; path=/; max-age=31536000";
-    toast.success("Welcome to MaroStore!", { id: loadingToast });
-    dispatch(checkUserSession());
+            // 1. Set cookie for middleware/server-side checks
+            document.cookie = "onboardingCompleted=true; path=/; max-age=31536000";
 
-    router.push(`/u/${finalUsername}`);
-    router.refresh();
+            // 2. Refresh Redux Session
+            dispatch(checkUserSession());
+
+            toast.success("Welcome to MaroStore!", { id: loadingToast });
+
+            // 3. HARD REFRESH REDIRECT
+            // This ensures the Guard and Redux state are fully reset with the new DB data
+            window.location.href = `/u/${finalUsername}`;
 
         } catch (error) {
+            console.error(error);
             toast.error("Save failed.", { id: loadingToast });
+            setIsLoading(false);
         }
     };
 
