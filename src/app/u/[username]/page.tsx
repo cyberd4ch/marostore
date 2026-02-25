@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 // Import the clear action if you want to use the "Clear History" feature later
-const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
+// const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
 import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
 
 const UserProfile = () => {
@@ -37,10 +37,27 @@ const UserProfile = () => {
 
     const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
-    const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed.items);
+    // const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed.items);
+
+    const recentlyViewedItems = useSelector((state: any) => {
+    try {
+        return state.recentlyViewed?.items || [];
+    } catch (e) {
+        return [];
+    }
+});
+
+const [isClient, setIsClient] = useState(false);
+
+useEffect(() => {
+    setIsClient(true);
+}, []);
+
+if (!isClient) return null;
 
     const isOwnProfile = currentUser && currentUser.username === username;
     const [editFields, setEditFields] = useState<any>({});
+
 
     // 1. Fetch User Data
     useEffect(() => {
