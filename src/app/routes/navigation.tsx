@@ -5,6 +5,7 @@ import { Heart } from 'lucide-react';
 import Link from 'next/link';
 // Removed 'next/image' import since we are using text now
 import { useSelector, useDispatch } from 'react-redux';
+import { usePathname, useRouter } from 'next/navigation';
 import { Search, User as UserIcon } from 'lucide-react';
 import { SearchCommand } from '@/components/search-command/search-command';
 
@@ -19,27 +20,51 @@ import { selectCurrentUser } from '@/store/user/user.selector';
 import { signOutStart } from '@/store/user/user.action';
 import { Button } from '@/components/ui/button';
 
-export default function Navigation({ children }: { children: React.ReactNode }) {
-    const [isSearchOpen, setIsSearchOpen] = useState(false);
-    const dispatch = useDispatch();
-    const currentUser = useSelector(selectCurrentUser);
-    const isCartOpen = useSelector(selectIsCartOpen);
+import { selectCartItems } from '@/store/cart/cart.selector'; // Add this
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector'; // Add this
 
+export default function Navigation({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const router = useRouter();
+    const dispatch = useDispatch();
+
+    const currentUser = useSelector(selectCurrentUser);
+    const cartItems = useSelector(selectCartItems);
+    const favoriteItems = useSelector(selectWishlistItems);
+    const isCartOpen = useSelector(selectIsCartOpen);
     const wishlistCount = useSelector(selectWishlistCount);
+    const [isSearchOpen, setIsSearchOpen] = useState(false);
+
 
     const signOutUser = () => dispatch(signOutStart());
 
     useEffect(() => {
-        const down = (e: KeyboardEvent) => {
-            if (e.key === "k" && (e.metaKey || e.ctrlKey)) {
-                e.preventDefault();
-                setIsSearchOpen((open) => !open);
-            }
-        };
+        // Only trigger if user is on Login or Signup page
+        const isAuthPage = pathname === '/auth' || pathname === '/login' || pathname === '/signup';
 
-        document.addEventListener("keydown", down);
-        return () => document.removeEventListener("keydown", down);
-    }, []);
+        if (currentUser && isAuthPage) {
+            const user = currentUser as any;
+
+            // 1. Force Onboarding if incomplete
+            if (!user.onboardingCompleted || !user.username) {
+                router.replace('/onboarding');
+                return;
+            }
+
+            // 2. Cart has items? Go to checkout
+            if (cartItems.length > 0) {
+                router.replace('/checkout');
+            }
+            // 3. No cart but has favorites? Go to profile wishlist view
+            else if (favoriteItems.length > 0) {
+                router.replace(`/u/${user.username}?view=wishlist`);
+            }
+            // 4. Default profile
+            else {
+                router.replace(`/u/${user.username}`);
+            }
+        }
+    }, [currentUser, cartItems, favoriteItems, pathname, router]);
 
     return (
         <Fragment>

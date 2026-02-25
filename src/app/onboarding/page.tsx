@@ -135,6 +135,14 @@ const OnboardingForm = () => {
 
             toast.success("Welcome to MaroStore!", { id: loadingToast });
 
+            await fetch('/api/send-welcome', {
+                method: 'POST',
+                body: JSON.stringify({
+                    email: currentUser?.email,
+                    displayName: formFields.displayName
+                }),
+            });
+
             // 3. HARD REFRESH REDIRECT
             // We removed router.push/refresh. This line below handles the 
             // redirect and the full state reset simultaneously.

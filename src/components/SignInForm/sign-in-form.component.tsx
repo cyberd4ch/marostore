@@ -1,11 +1,14 @@
 'use client';
 
-import { useState, FormEvent, ChangeEvent } from 'react';
-import { useDispatch } from 'react-redux';
+import { useState, FormEvent, ChangeEvent, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { Mail, Lock, Loader2 } from 'lucide-react';
+import { useRouter } from 'next/navigation';
 
-// Make sure these paths match your actual Redux action files
 import { emailSignInStart, googleSignInStart } from '@/store/user/user.action';
+import { selectCurrentUser } from '@/store/user/user.selector';
+import { selectCartItems } from '@/store/cart/cart.selector';
+import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
 
 type SignInFormProps = {
     onSwitchToSignUp: () => void;
@@ -18,9 +21,44 @@ const defaultFormFields = {
 
 export default function SignInForm({ onSwitchToSignUp }: SignInFormProps) {
     const dispatch = useDispatch();
+    const router = useRouter();
+
+    const currentUser = useSelector(selectCurrentUser);
+    const cartItems = useSelector(selectCartItems);
+    const favoriteItems = useSelector(selectWishlistItems);
+
     const [formFields, setFormFields] = useState(defaultFormFields);
     const { email, password } = formFields;
     const [isLoading, setIsLoading] = useState(false);
+
+    useEffect(() => {
+        if (currentUser) {
+            const user = currentUser as any;
+
+            // Priority 1: Onboarding (Check if they have finished setup)
+            if (!user.onboardingCompleted || !user.username) {
+                router.replace('/onboarding');
+                return;
+            }
+
+            // Priority 2: Checkout (If items are in cart)
+            if (cartItems.length > 0) {
+                router.replace('/checkout');
+                return;
+            }
+
+            // Priority 3: Favorites (If no cart items, but has favorites)
+            if (favoriteItems.length > 0) {
+                router.replace(`/u/${user.username}?view=wishlist`);
+                return;
+            }
+
+            // Priority 4: Standard Profile
+            router.replace(`/u/${user.username}`);
+        }
+    }, [currentUser, cartItems, favoriteItems, router]);
+
+    
 
     const resetFormFields = () => {
         setFormFields(defaultFormFields);

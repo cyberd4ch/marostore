@@ -14,18 +14,19 @@ export default function OnboardingGuard({ children }: { children: React.ReactNod
     useEffect(() => {
         if (isRehydrated && currentUser) {
             const user = currentUser as any;
+            const hasFinishedOnboarding = user.onboardingCompleted === true && !!user.username;
 
-            // Check both the flag and the existence of a username
-            const hasFinishedOnboarding = user.onboardingCompleted === true || !!user.username;
-
-            // Step A: If NOT onboarded and NOT on the onboarding page, send them there
-            if (!hasFinishedOnboarding && pathname !== '/onboarding') {
-                router.replace('/onboarding');
-            }
-
-            // Step B: If ALREADY onboarded and trying to access /onboarding, kick them to profile
-            if (hasFinishedOnboarding && pathname === '/onboarding') {
-                router.replace(`/u/${user.username}`);
+            // If they are logged in but haven't finished onboarding
+            if (!hasFinishedOnboarding) {
+                // Stop them from going anywhere EXCEPT onboarding
+                if (pathname !== '/onboarding') {
+                    router.replace('/onboarding');
+                }
+            } else {
+                // If they HAVE finished onboarding, stop them from going BACK to /onboarding
+                if (pathname === '/onboarding') {
+                    router.replace(`/u/${user.username}`);
+                }
             }
         }
     }, [currentUser, isRehydrated, pathname, router]);
