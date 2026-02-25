@@ -12,22 +12,31 @@ const AdminDashboard = () => {
         { title: "Avg. Order Value", value: "₵0.00", icon: TrendingUp, color: "text-purple-600" },
     ]);
     const [loading, setLoading] = useState(true);
+    const [inventory, setInventory] = useState([]);
 
     useEffect(() => {
-        const fetchStats = async () => {
+        // 1. Define the unified fetcher
+        const fetchAllData = async (user: any) => {
             try {
-                const token = await auth.currentUser?.getIdToken();
-                if (!token) return;
+                setLoading(true);
+                const token = await user.getIdToken(true); // Force refresh to catch isAdmin claim
 
                 const [prodRes, orderRes] = await Promise.all([
                     fetch('/api/admin/products', { headers: { 'Authorization': `Bearer ${token}` } }),
                     fetch('/api/admin/orders', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
+                if (!prodRes.ok || !orderRes.ok) {
+                    throw new Error("Failed to fetch data");
+                }
+
                 const products = await prodRes.json();
                 const orders = await orderRes.json();
 
-                // Logic Calculations
+                // Set Inventory state
+                setInventory(products);
+
+                // Calculate Stats
                 const totalRevenue = orders.reduce((acc: number, curr: any) => acc + (curr.totalAmount || 0), 0);
                 const activeOrders = orders.filter((o: any) => o.status !== 'Delivered').length;
                 const avgValue = orders.length > 0 ? totalRevenue / orders.length : 0;
@@ -39,13 +48,24 @@ const AdminDashboard = () => {
                     { title: "Avg. Order Value", value: `₵${avgValue.toFixed(2)}`, icon: TrendingUp, color: "text-purple-600" },
                 ]);
             } catch (error) {
-                console.error("Error loading stats:", error);
+                console.error("Dashboard Fetch Error:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchStats();
+        // 2. Listen for Auth state changes
+        const unsubscribe = auth.onAuthStateChanged((user) => {
+            if (user) {
+                fetchAllData(user);
+            } else {
+                // Optional: redirect to login if no user is found
+                setLoading(false);
+            }
+        });
+
+        // 3. Cleanup listener on unmount
+        return () => unsubscribe();
     }, []);
 
     return (
