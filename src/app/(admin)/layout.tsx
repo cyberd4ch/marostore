@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { LayoutDashboard, ShoppingBag, ListOrdered, Home } from 'lucide-react';
 import AdminGuard from "@/components/AdminGuard";
 
+// Ensure these match your folder paths exactly
 const sidebarLinks = [
     { name: 'Analytics', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Products', href: '/dashboard/products', icon: ShoppingBag },

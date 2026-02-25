@@ -11,7 +11,7 @@ if (!admin.apps.length) {
     });
 }
 
-const adminDb = getFirestore();
+export const adminDb = getFirestore();
 
 export async function verifyAdmin(token: string): Promise<boolean> {
     try {

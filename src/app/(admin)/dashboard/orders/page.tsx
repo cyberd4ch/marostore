@@ -6,6 +6,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { toast } from 'sonner';
 import { Package, Truck, CheckCircle, Clock } from 'lucide-react';
+import { auth } from "../../../utils/firebase/firebase.utils"; // Adjust path as needed
 
 const OrdersPage = () => {
     const [orders, setOrders] = useState([]);
@@ -13,7 +14,14 @@ const OrdersPage = () => {
 
     const fetchOrders = async () => {
         try {
-            const res = await fetch('/api/admin/orders');
+            // Get the token from Firebase Auth
+            const token = await auth.currentUser?.getIdToken(true);
+
+            const res = await fetch('/api/admin/orders', {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             const data = await res.json();
             setOrders(data);
         } catch (error) {
@@ -27,9 +35,13 @@ const OrdersPage = () => {
 
     const updateStatus = async (id: string, newStatus: string) => {
         try {
+            const token = await auth.currentUser?.getIdToken();
             const res = await fetch('/api/admin/orders', {
                 method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify({ id, status: newStatus }),
             });
             if (res.ok) {
@@ -52,7 +64,7 @@ const OrdersPage = () => {
     return (
         <div className="p-8 space-y-8 bg-slate-50 min-h-screen">
             <h1 className="text-4xl font-black tracking-tighter">ORDER LOGISTICS</h1>
-            
+
             <Card className="rounded-[2.5rem] border-none shadow-xl bg-white overflow-hidden">
                 <CardHeader className="bg-slate-900 text-white p-8">
                     <CardTitle className="flex items-center gap-3">
@@ -95,7 +107,7 @@ const OrdersPage = () => {
                                         </div>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <select 
+                                        <select
                                             className="text-xs bg-slate-100 border-none rounded-lg p-2 focus:ring-0"
                                             onChange={(e) => updateStatus(order._id, e.target.value)}
                                             value={order.status}
