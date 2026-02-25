@@ -110,14 +110,18 @@ export const createUserDocumentFromAuth = async (
         const { displayName, email } = userAuth;
         const createdAt = new Date();
 
+        const adminEmails = ['lewisrodney21@yahoo.com']; // add others as needed
+        const isAdmin = adminEmails.includes(email || '');
+
         try {
             await setDoc(userDocRef, {
                 displayName,
                 email,
                 createdAt,
+                isAdmin,
                 ...additionalInformation,
             });
-            
+
             // RE-FETCH: After creating the doc, fetch the new snapshot
             userSnapshot = await getDoc(userDocRef);
         } catch (error) {
@@ -163,4 +167,13 @@ export const getCurrentUser = (): Promise<User | null> => {
             reject
         );
     });
+};
+
+export const getUserDocument = async (uid: string) => {
+    const userDocRef = doc(db, "users", uid);
+    const userSnapshot = await getDoc(userDocRef);
+    if (userSnapshot.exists()) {
+        return userSnapshot.data(); // This contains the isAdmin field
+    }
+    return null;
 };

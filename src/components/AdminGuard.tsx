@@ -5,6 +5,7 @@ import { useSelector } from "react-redux";
 import { useRouter } from "next/navigation";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import { Loader2 } from "lucide-react";
+import { getCurrentUser, getUserDocument, getUserDocument } from "@/app/utils/firebase/firebase.utils";
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
@@ -12,14 +13,19 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
     const isRehydrated = useSelector((state: any) => state._persist?.rehydrated);
 
     useEffect(() => {
-        // Wait for Redux to finish loading from local storage
-        if (isRehydrated) {
-            if (!currentUser || !currentUser.isAdmin) {
-                // If not logged in OR logged in but not an admin, kick them out
-                router.replace("/");
+        const checkAdmin = async () => {
+            const user = await getCurrentUser();
+            if (user) {
+                const userData = await getUserDocument(user.uid);
+                if (userData?.isAdmin) {
+                    setIsAuthorized(true);
+                } else {
+                    router.push('/'); // Not an admin, kick them out
+                }
             }
-        }
-    }, [currentUser, isRehydrated, router]);
+        };
+        checkAdmin();
+    }, []);
 
     // Show a loader while checking permissions
     if (!isRehydrated || (currentUser && !currentUser.isAdmin === undefined)) {
