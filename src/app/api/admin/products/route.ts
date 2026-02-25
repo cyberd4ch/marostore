@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import { adminDb, verifyAdmin } from '../../../lib/firebaseAdmin';
+import { adminDb, verifyAdmin } from '@/lib/firebaseAdmin';
 
 export async function GET(req: Request) {
     const authHeader = req.headers.get('authorization');

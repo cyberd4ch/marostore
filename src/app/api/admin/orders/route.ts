@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import { adminDb, verifyAdmin } from '../../../lib/firebaseAdmin';
+import { adminDb, verifyAdmin } from '@/lib/firebaseAdmin';
 
 // GET: Fetch all orders for the Admin Logistics page
 export async function GET(req: Request) {
