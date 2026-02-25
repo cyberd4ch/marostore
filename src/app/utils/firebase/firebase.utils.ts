@@ -178,12 +178,12 @@ export const getUserDocument = async (uid: string) => {
     try {
         const userDocRef = doc(db, "users", uid);
         const userSnapshot = await getDoc(userDocRef);
+        
         if (userSnapshot.exists()) {
-            return userSnapshot.data();
+            return userSnapshot.data(); // This must contain { isAdmin: true }
         }
     } catch (error) {
         console.error("Error fetching user document:", error);
-        throw error; // Let the UI know there was an error, don't just logout
     }
     return null;
 };

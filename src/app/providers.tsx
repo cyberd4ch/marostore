@@ -10,7 +10,7 @@ import { auth } from '@/app/utils/firebase/firebase.utils';
 import { onAuthStateChanged } from 'firebase/auth';
 
 import SessionChecker from '@/app/session-checker'; 
-import ServiceWorkerRegistrar from '@/app/service-worker-registrar'; 
+// import ServiceWorkerRegistrar from '@/app/service-worker-registrar'; 
 
 export function Providers({ children }: { children: React.ReactNode }) {
     
@@ -46,7 +46,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         <Provider store={store}>
             <PersistGate loading={null} persistor={persistor}>
                 <SessionChecker />
-                <ServiceWorkerRegistrar />
+                {/* <ServiceWorkerRegistrar /> */}
                 {children}
             </PersistGate>
         </Provider>
