@@ -1,41 +1,47 @@
-import dbConnect from '@/lib/mongodb';
-import User from '@/models/User';
 import { NextResponse } from 'next/server';
+import admin from 'firebase-admin';
+import { adminDb } from '@/lib/firebaseAdmin';
 
 export async function POST(req: Request) {
     try {
-        await dbConnect();
-        
-        // 1. Destructure everything from the request body
+        // 1. Get user data from request body
         const body = await req.json();
-        const { email, username } = body;
+        const { email, uid, displayName, photoURL } = body;
 
-        if (!email) {
-            return NextResponse.json({ error: "Email is required" }, { status: 400 });
+        if (!uid || !email) {
+            return NextResponse.json(
+                { error: "UID and Email are required for sync" }, 
+                { status: 400 }
+            );
         }
 
-        // 2. Use findOneAndUpdate with 'upsert'
-        // This finds the user by email and updates them with ALL provided data,
-        // or creates a new one if they don't exist.
-        const user = await User.findOneAndUpdate(
-            { email }, 
-            { 
-                $set: { 
-                    ...body, // Spread all incoming fields (displayName, photoURL, etc)
-                    username: username || email.split('@')[0],
-                },
-                $setOnInsert: { isAdmin: false } // Only set isAdmin if creating new
-            },
-            { 
-                new: true,      // Return the updated document
-                upsert: true,   // Create if not found
-                runValidators: true // Ensure it follows your Schema
-            }
-        );
+        const userRef = adminDb.collection('users').doc(uid);
+        const userDoc = await userRef.get();
 
-        return NextResponse.json(user);
+        // 2. Prepare update data
+        const userData = {
+            email,
+            displayName: displayName || email.split('@')[0],
+            photoURL: photoURL || '',
+            lastLogin: admin.firestore.FieldValue.serverTimestamp(),
+            updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        };
+
+        if (!userDoc.exists) {
+            // Create new user if they don't exist
+            await userRef.set({
+                ...userData,
+                createdAt: admin.firestore.FieldValue.serverTimestamp(),
+                isAdmin: false, // Default to false for new users
+            });
+        } else {
+            // Update existing user (don't overwrite isAdmin or createdAt)
+            await userRef.update(userData);
+        }
+
+        return NextResponse.json({ success: true, message: "User synced to Firestore" });
     } catch (error: any) {
-        console.error("User Sync Error:", error);
+        console.error("User Sync Error (Firestore):", error);
         return NextResponse.json(
             { error: error.message || "Internal Server Error" }, 
             { status: 500 }
