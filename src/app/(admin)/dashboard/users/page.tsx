@@ -7,6 +7,8 @@ import { Switch } from "@/components/ui/switch"; // Ensure you have this shadcn 
 import { toast } from 'sonner';
 import { Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
 
+import { auth } from '@/app/utils/firebase/firebase.utils';
+
 interface User {
     uid: string;
     displayName: string | null;
@@ -18,17 +20,40 @@ export default function UserManagement() {
     const [users, setUsers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    const fetchUsers = async () => {
-        try {
-            const res = await fetch('/api/admin/users');
-            const data = await res.json();
-            if (Array.isArray(data)) setUsers(data);
-        } catch (error) {
-            toast.error("Failed to load users");
-        } finally {
-            setLoading(false);
+ const fetchUsers = async () => {
+    try {
+        setLoading(true);
+        
+        // 1. Get the current user's token
+        const user = auth.currentUser;
+        if (!user) {
+            toast.error("You must be logged in");
+            return;
         }
-    };
+        const token = await user.getIdToken();
+
+        // 2. Pass that token in the Authorization header
+        const res = await fetch('/api/admin/users', {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await res.json();
+        
+        if (res.ok && Array.isArray(data)) {
+            setUsers(data);
+        } else {
+            toast.error(data.error || "Access Denied");
+        }
+    } catch (error) {
+        toast.error("Failed to load users");
+    } finally {
+        setLoading(false);
+    }
+};
 
     const toggleAdmin = async (uid: string, currentStatus: boolean) => {
         try {
