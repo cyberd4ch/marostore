@@ -17,7 +17,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     // Auth Sync Logic
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
-            if (user) {
+            if (user && user.uid) {
                 try {
                     const userData = {
                         uid: user.uid,

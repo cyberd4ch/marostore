@@ -1,63 +1,104 @@
 import { NextResponse } from 'next/server';
-import admin from 'firebase-admin';
-import { adminDb, verifyAdmin } from '@/lib/firebaseAdmin';
+import { db } from '@/app/utils/firebase/firebase.utils';
+import { 
+    collection, 
+    getDocs, 
+    addDoc, 
+    updateDoc, 
+    deleteDoc, 
+    doc, 
+    query, 
+    orderBy, 
+    serverTimestamp 
+} from 'firebase/firestore';
 
-export async function GET(req: Request) {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split('Bearer ')[1];
-
-    // 1. Verify Admin Status via Firebase Token
-    if (!token || !(await verifyAdmin(token))) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
-    // Inside GET function in app/api/admin/products/route.ts
+// GET: Fetch all products
+export async function GET() {
     try {
-        const snapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').get();
-
-        // CHANGED: Ensure 'id' is mapped to '_id' for frontend compatibility
-        const products = snapshot.docs.map(doc => ({
+        const productsRef = collection(db, 'products');
+        // Ordering by createdAt so newest items appear first
+        const q = query(productsRef, orderBy('createdAt', 'desc'));
+        const querySnapshot = await getDocs(q);
+        
+        const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
             ...doc.data()
         }));
 
         return NextResponse.json(products);
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("GET Products Error:", error);
+        return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }
 
+// POST: Create a new product
 export async function POST(req: Request) {
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split('Bearer ')[1];
-
-    if (!token || !(await verifyAdmin(token))) {
-        return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    }
-
     try {
-        const body = await req.json();
-        // 3. Save to Firestore
-        const docRef = await adminDb.collection('products').add({
-            ...body,
-            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        const data = await req.json();
+        const productsRef = collection(db, 'products');
+        
+        const newProduct = {
+            name: data.name,
+            price: Number(data.price),
+            imageUrl: data.imageUrl,
+            category: data.category || '',
+            createdAt: serverTimestamp(), // Use Firestore server time
+        };
+
+        const docRef = await addDoc(productsRef, newProduct);
+        return NextResponse.json({ _id: docRef.id, ...newProduct });
+    } catch (error: any) {
+        console.error("POST Product Error:", error);
+        return NextResponse.json({ error: "Upload failed" }, { status: 500 });
+    }
+}
+
+// PUT: Update an existing product
+export async function PUT(req: Request) {
+    try {
+        const data = await req.json();
+        const { id, ...updateData } = data;
+
+        if (!id) {
+            return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
+        }
+
+        const productDocRef = doc(db, 'products', id);
+        
+        // Ensure price is saved as a number
+        if (updateData.price) {
+            updateData.price = Number(updateData.price);
+        }
+
+        await updateDoc(productDocRef, {
+            ...updateData,
+            updatedAt: serverTimestamp()
         });
 
-        return NextResponse.json({ id: docRef.id, success: true });
+        return NextResponse.json({ success: true, id });
     } catch (error: any) {
-        return NextResponse.json({ error: error.message }, { status: 500 });
+        console.error("PUT Product Error:", error);
+        return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
 }
 
+// DELETE: Remove a product
 export async function DELETE(req: Request) {
-    const { searchParams } = new URL(req.url);
-    const id = searchParams.get('id');
-    const authHeader = req.headers.get('authorization');
-    const token = authHeader?.split('Bearer ')[1];
+    try {
+        const { searchParams } = new URL(req.url);
+        const id = searchParams.get('id');
 
-    if (!token || !(await verifyAdmin(token))) return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
-    if (!id) return NextResponse.json({ error: 'ID required' }, { status: 400 });
+        if (!id) {
+            return NextResponse.json({ error: "Product ID is required" }, { status: 400 });
+        }
 
-    await adminDb.collection('products').doc(id).delete();
-    return NextResponse.json({ success: true });
+        const productDocRef = doc(db, 'products', id);
+        await deleteDoc(productDocRef);
+
+        return NextResponse.json({ success: true, message: "Product deleted" });
+    } catch (error: any) {
+        console.error("DELETE Product Error:", error);
+        return NextResponse.json({ error: "Delete failed" }, { status: 500 });
+    }
 }
