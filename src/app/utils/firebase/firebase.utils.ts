@@ -12,7 +12,6 @@ import {
     User,
 } from "firebase/auth";
 import {
-    getFirestore,
     doc,
     getDoc,
     setDoc,
@@ -24,6 +23,7 @@ import {
 } from "firebase/firestore";
 
 import { Category } from "../../../store/categories/category.types";
+import { getFirestore, initializeFirestore } from "firebase/firestore"; // CORRECT: Client SDK
 
 const firebaseConfig = {
     apiKey: "AIzaSyBDVHNvtx_cO9HeF95vI9U5RHr4rvucwkc",
@@ -34,6 +34,8 @@ const firebaseConfig = {
     appId: "1:312394954094:web:a38f7def7c607512a93d7f",
     measurementId: "G-8E2RJ2Z255"
 };
+
+
 
 // const config = {
 //   databaseURL: 'https://crwn-fashion-clothing-db.firebaseio.com',
@@ -54,7 +56,9 @@ export const signInWithGooglePopup = () =>
 export const signInWithGoogleRedirect = () =>
     signInWithRedirect(auth, googleProvider);
 
-export const db = getFirestore();
+export const db = initializeFirestore(firebaseApp, {
+    experimentalForceLongPolling: true,
+});
 
 export type ObjectToAdd = {
     title: string;
@@ -170,10 +174,16 @@ export const getCurrentUser = (): Promise<User | null> => {
 };
 
 export const getUserDocument = async (uid: string) => {
-    const userDocRef = doc(db, "users", uid);
-    const userSnapshot = await getDoc(userDocRef);
-    if (userSnapshot.exists()) {
-        return userSnapshot.data(); // This contains the isAdmin field
+    if (!uid) return null;
+    try {
+        const userDocRef = doc(db, "users", uid);
+        const userSnapshot = await getDoc(userDocRef);
+        if (userSnapshot.exists()) {
+            return userSnapshot.data();
+        }
+    } catch (error) {
+        console.error("Error fetching user document:", error);
+        throw error; // Let the UI know there was an error, don't just logout
     }
     return null;
 };

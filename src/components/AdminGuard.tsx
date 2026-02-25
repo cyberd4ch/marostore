@@ -1,35 +1,60 @@
-"use client";
+'use client';
 
-import { useEffect } from "react";
-import { useSelector } from "react-redux";
-import { useRouter } from "next/navigation";
-import { selectCurrentUser } from "@/store/user/user.selector";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { auth, getUserDocument } from '../app/utils/firebase/firebase.utils';
+import { onAuthStateChanged } from 'firebase/auth';
+import { Loader2 } from 'lucide-react';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
+    const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
     const router = useRouter();
-    const currentUser = useSelector(selectCurrentUser);
-    // Explicitly check if redux-persist has finished rehydrating
-    const isRehydrated = useSelector((state: any) => state._persist?.rehydrated);
 
     useEffect(() => {
-        if (isRehydrated) {
-            // If rehydration is done and user is definitely not an admin
-            if (!currentUser || currentUser.isAdmin !== true) {
-                router.replace("/");
+        const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                // No user logged in, send to auth page
+                router.push('/auth');
+                setStatus('unauthorized');
+                return;
             }
-        }
-    }, [currentUser, isRehydrated, router]);
 
-    // Show loader while rehydrating OR while we don't have user data yet
-    if (!isRehydrated) {
+            try {
+                // Fetch the user document to check isAdmin
+                const userDoc = await getUserDocument(user.uid);
+
+                if (userDoc && userDoc.isAdmin) {
+                    setStatus('authorized');
+                } else {
+                    // Logged in but NOT an admin
+                    console.warn("Access denied: User is not an admin");
+                    router.push('/');
+                    setStatus('unauthorized');
+                }
+            } catch (error) {
+                console.error("Error checking admin status:", error);
+                router.push('/');
+                setStatus('unauthorized');
+            }
+        });
+
+        return () => unsubscribe();
+    }, [router]);
+
+    if (status === 'loading') {
         return (
-            <div className="h-screen w-full flex items-center justify-center bg-white">
-                <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
+            <div className="flex h-screen w-full items-center justify-center bg-slate-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
+                    <p className="font-bold text-slate-500 animate-pulse">Verifying Admin Access...</p>
+                </div>
             </div>
         );
     }
 
-    // Only render children if user is verified as Admin in the store
-    return currentUser?.isAdmin ? <>{children}</> : null;
+    if (status === 'unauthorized') {
+        return null; // Prevents flashing of admin content while redirecting
+    }
+
+    return <>{children}</>;
 }
