@@ -136,7 +136,8 @@ const OnboardingForm = () => {
             toast.success("Welcome to MaroStore!", { id: loadingToast });
 
             // 3. HARD REFRESH REDIRECT
-            // This ensures the Guard and Redux state are fully reset with the new DB data
+            // We removed router.push/refresh. This line below handles the 
+            // redirect and the full state reset simultaneously.
             window.location.href = `/u/${finalUsername}`;
 
         } catch (error) {

@@ -99,13 +99,13 @@ export type UserData = {
 export const createUserDocumentFromAuth = async (
     userAuth: User,
     additionalInformation = {} as AdditionalInformation
-): Promise<void | QueryDocumentSnapshot<UserData>> => {
+): Promise<QueryDocumentSnapshot<UserData> | undefined> => {
     if (!userAuth) return;
 
     const userDocRef = doc(db, "users", userAuth.uid);
+    let userSnapshot = await getDoc(userDocRef);
 
-    const userSnapshot = await getDoc(userDocRef);
-
+    // If user doesn't exist, create it
     if (!userSnapshot.exists()) {
         const { displayName, email } = userAuth;
         const createdAt = new Date();
@@ -117,11 +117,15 @@ export const createUserDocumentFromAuth = async (
                 createdAt,
                 ...additionalInformation,
             });
+            
+            // RE-FETCH: After creating the doc, fetch the new snapshot
+            userSnapshot = await getDoc(userDocRef);
         } catch (error) {
             console.log("error creating the user", error);
         }
     }
 
+    // Always return the most current snapshot available
     return userSnapshot as QueryDocumentSnapshot<UserData>;
 };
 

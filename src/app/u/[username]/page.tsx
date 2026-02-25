@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import { db } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, User as UserIcon, Save, X, Edit2, Heart, Share2, Check } from "lucide-react";
+import { Loader2, User as UserIcon, Save, X, Edit2, Heart, Share2, Check, Phone, MapPin } from "lucide-react";
 
 const UserProfile = () => {
     const router = useRouter();
@@ -166,83 +166,110 @@ const UserProfile = () => {
                                 </div>
                             </div>
 
-                            {/* Shipping Section */}
+                            
+                            {/* Shipping & Contact Section */}
                             <div className="space-y-4">
-                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Shipping Details</h2>
+                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Contact & Shipping</h2>
                                 <div className="space-y-3">
+                                    {/* Phone Field */}
+                                    <div className="p-4 border border-slate-100 rounded-2xl flex flex-col gap-1">
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                                            <Phone size={10} /> Phone Number
+                                        </p>
+                                        {isEditing ? (
+                                            <Input
+                                                value={editFields.phoneNumber}
+                                                onChange={(e) => setEditFields({ ...editFields, phoneNumber: e.target.value })}
+                                                className="h-8 text-sm bg-slate-50 border-none"
+                                            />
+                                        ) : (
+                                            <p className="font-semibold text-slate-900">{userData.phoneNumber || 'Not provided'}</p>
+                                        )}
+                                    </div>
+
+                                    {/* Address Field */}
                                     <div className="p-4 border border-slate-100 rounded-2xl space-y-2">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold">Address & City</p>
+                                        <p className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
+                                            <MapPin size={10} /> Delivery Address
+                                        </p>
                                         {isEditing ? (
                                             <div className="space-y-2">
-                                                <Input value={editFields.address} onChange={(e) => setEditFields({ ...editFields, address: e.target.value })} placeholder="Address" className="h-8 text-sm" />
-                                                <Input value={editFields.city} onChange={(e) => setEditFields({ ...editFields, city: e.target.value })} placeholder="City" className="h-8 text-sm" />
+                                                <Input value={editFields.address} onChange={(e) => setEditFields({ ...editFields, address: e.target.value })} placeholder="Street Address" className="h-8 text-sm" />
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <Input value={editFields.city} onChange={(e) => setEditFields({ ...editFields, city: e.target.value })} placeholder="City" className="h-8 text-sm" />
+                                                    <Input value={editFields.postCode} onChange={(e) => setEditFields({ ...editFields, postCode: e.target.value })} placeholder="Post Code" className="h-8 text-sm" />
+                                                </div>
                                             </div>
                                         ) : (
-                                            <p className="font-semibold text-slate-900">
-                                                {userData.address ? `${userData.address}, ${userData.city}` : 'No address saved'}
-                                            </p>
+                                            <div className="font-semibold text-slate-900">
+                                                <p>{userData.address || 'No address saved'}</p>
+                                                {(userData.city || userData.postCode) && (
+                                                    <p className="text-sm text-slate-500 font-medium">
+                                                        {userData.city}{userData.postCode ? `, ${userData.postCode}` : ''}
+                                                    </p>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 </div>
                             </div>
-                        </div>
 
-                        {/* --- WISHLIST SECTION (The one you wanted to keep) --- */}
-                        <div className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="space-y-1">
-                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
-                                    <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
+                            {/* --- WISHLIST SECTION (The one you wanted to keep) --- */}
+                            <div className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="space-y-1">
+                                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
+                                        <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
+                                    </div>
+                                    <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
                                 </div>
-                                <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
-                            </div>
 
-                            {wishlistItems.length > 0 ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {wishlistItems.slice(0, 4).map((product: any) => (
-                                        <div key={product.id} className="scale-95 origin-top">
-                                            {/* compact prop passed here */}
-                                            <ProductCard product={product} compact={true} />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                                    <p className="text-sm text-slate-400">No items in wishlist yet.</p>
-                                </div>
-                            )}
-
-                            {wishlistItems.length > 4 && (
-                                <button
-                                    onClick={() => router.push('/wishlist')}
-                                    className="w-full mt-6 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
-                                >
-                                    View All {wishlistItems.length} Items
-                                </button>
-                            )}
-                        </div>
-
-                        {/* Footer Action - Only visible to the owner */}
-                        {isOwnProfile && (
-                            <div className="p-6 bg-slate-900">
-                                {isEditing ? (
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={isSaving}
-                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
-                                    >
-                                        {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <><Save size={16} /> Save Preferences</>}
-                                    </button>
+                                {wishlistItems.length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {wishlistItems.slice(0, 4).map((product: any) => (
+                                            <div key={product.id} className="scale-95 origin-top">
+                                                {/* compact prop passed here */}
+                                                <ProductCard product={product} compact={true} />
+                                            </div>
+                                        ))}
+                                    </div>
                                 ) : (
+                                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
+                                        <p className="text-sm text-slate-400">No items in wishlist yet.</p>
+                                    </div>
+                                )}
+
+                                {wishlistItems.length > 4 && (
                                     <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                        onClick={() => router.push('/wishlist')}
+                                        className="w-full mt-6 text-xs font-bold text-slate-400 hover:text-slate-900 transition-colors"
                                     >
-                                        <Edit2 size={16} /> Edit Shopping Preferences
+                                        View All {wishlistItems.length} Items
                                     </button>
                                 )}
                             </div>
-                        )}
+
+                            {/* Footer Action - Only visible to the owner */}
+                            {isOwnProfile && (
+                                <div className="p-6 bg-slate-900">
+                                    {isEditing ? (
+                                        <button
+                                            onClick={handleSave}
+                                            disabled={isSaving}
+                                            className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
+                                        >
+                                            {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <><Save size={16} /> Save Preferences</>}
+                                        </button>
+                                    ) : (
+                                        <button
+                                            onClick={() => setIsEditing(true)}
+                                            className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
+                                        >
+                                            <Edit2 size={16} /> Edit Shopping Preferences
+                                        </button>
+                                    )}
+                                </div>
+                            )}
                     </CardContent>
                 </Card>
             </div>
