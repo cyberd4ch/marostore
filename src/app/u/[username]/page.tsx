@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 
 // Import the clear action if you want to use the "Clear History" feature later
-import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
+const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
 
 const UserProfile = () => {
     const router = useRouter();

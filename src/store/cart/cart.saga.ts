@@ -8,6 +8,7 @@ import { setCartItems } from './cart.action';
 export function* syncCartOnLogin() {
     try {
         const currentUser = yield* select(selectCurrentUser);
+        if (!currentUser || !currentUser.id) return;
         const localCartItems = yield* select(selectCartItems);
 
         if (currentUser && localCartItems.length > 0) {

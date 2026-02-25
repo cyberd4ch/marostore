@@ -24,12 +24,13 @@ import { userReducer } from './user/user.reducer';
 import { categoriesReducer } from './categories/category.reducer';
 import { cartReducer } from './cart/cart.reducer';
 import { wishlistReducer } from './wishlist/wishlist.reducer';
+import { recentlyViewedReducer } from './recently-viewed/recently-viewed.reducer';
 
 // 1. Persist configuration (only 'cart' is persisted)
 const persistConfig = {
     key: 'root',
     storage,
-    whitelist: ['cart', 'wishlist'],
+    whitelist: ['cart', 'wishlist', 'recentlyViewed'],
 };
 
 // 2. Combine reducers with persistence
@@ -38,6 +39,7 @@ const persistedReducer = persistCombineReducers<any, any>(persistConfig, {
     categories: categoriesReducer,
     cart: cartReducer,
     wishlist: wishlistReducer,
+    recentlyViewed: recentlyViewedReducer,
 });
 
 
