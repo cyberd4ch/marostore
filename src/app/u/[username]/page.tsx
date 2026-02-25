@@ -16,8 +16,6 @@ import {
     Heart, Share2, Check, Phone, MapPin, Search
 } from "lucide-react";
 
-// Import the clear action if you want to use the "Clear History" feature later
-// const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
 import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
 
 const UserProfile = () => {
@@ -35,29 +33,26 @@ const UserProfile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
 
+    // HYDRATION SHIELD: Prevents Redux/LocalStorage mismatch errors (#310)
+    const [isHydrated, setIsHydrated] = useState(false);
+
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
+
     const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
-    // const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed.items);
 
     const recentlyViewedItems = useSelector((state: any) => {
-    try {
-        return state.recentlyViewed?.items || [];
-    } catch (e) {
-        return [];
-    }
-});
-
-const [isClient, setIsClient] = useState(false);
-
-useEffect(() => {
-    setIsClient(true);
-}, []);
-
-if (!isClient) return null;
+        try {
+            return state.recentlyViewed?.items || [];
+        } catch (e) {
+            return [];
+        }
+    });
 
     const isOwnProfile = currentUser && currentUser.username === username;
     const [editFields, setEditFields] = useState<any>({});
-
 
     // 1. Fetch User Data
     useEffect(() => {
@@ -93,8 +88,6 @@ if (!isClient) return null;
             return () => clearTimeout(timer);
         }
     }, [view, loading]);
-
-    // --- RESTORED HANDLERS ---
 
     const handleShare = () => {
         const url = window.location.href;
@@ -249,8 +242,8 @@ if (!isClient) return null;
                             </div>
                         </div>
 
-                        {/* Recently Viewed */}
-                        {recentlyViewedItems.length > 0 && (
+                        {/* Recently Viewed - HYDRATED CONTENT */}
+                        {isHydrated && recentlyViewedItems.length > 0 && (
                             <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
                                 <div className="flex items-center justify-between mb-6">
                                     <div className="space-y-1">
@@ -273,29 +266,31 @@ if (!isClient) return null;
                             </div>
                         )}
 
-                        {/* Wishlist Section */}
-                        <div ref={wishlistRef} className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
-                            <div className="flex items-center justify-between mb-6">
-                                <div className="space-y-1">
-                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
-                                    <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
+                        {/* Wishlist Section - HYDRATED CONTENT */}
+                        {isHydrated && (
+                            <div ref={wishlistRef} className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
+                                <div className="flex items-center justify-between mb-6">
+                                    <div className="space-y-1">
+                                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
+                                        <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
+                                    </div>
+                                    <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
                                 </div>
-                                <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
+                                {wishlistItems.length > 0 ? (
+                                    <div className="grid grid-cols-2 gap-4">
+                                        {wishlistItems.slice(0, 4).map((product: any) => (
+                                            <div key={`wish-${product.id}`} className="scale-95 origin-top">
+                                                <ProductCard product={product} compact={true} />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
+                                        <p className="text-sm text-slate-400">No items in wishlist yet.</p>
+                                    </div>
+                                )}
                             </div>
-                            {wishlistItems.length > 0 ? (
-                                <div className="grid grid-cols-2 gap-4">
-                                    {wishlistItems.slice(0, 4).map((product: any) => (
-                                        <div key={`wish-${product.id}`} className="scale-95 origin-top">
-                                            <ProductCard product={product} compact={true} />
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                                    <p className="text-sm text-slate-400">No items in wishlist yet.</p>
-                                </div>
-                            )}
-                        </div>
+                        )}
 
                         {/* Footer Action */}
                         {isOwnProfile && (
