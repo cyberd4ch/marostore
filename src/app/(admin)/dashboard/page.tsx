@@ -18,6 +18,7 @@ const AdminDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [inventory, setInventory] = useState([]);
     const [orders, setOrders] = useState([]);
+    const [users, setUsers] = useState([]);
 
     const getTopProducts = () => {
         const productMap: Record<string, { name: string, quantity: number, revenue: number }> = {};
@@ -50,21 +51,24 @@ const AdminDashboard = () => {
                 setLoading(true);
                 const token = await user.getIdToken(true); // Force refresh to catch isAdmin claim
 
-                const [prodRes, orderRes] = await Promise.all([
+                const [prodRes, orderRes, userRes] = await Promise.all([
                     fetch('/api/admin/products', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('/api/admin/orders', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('/api/admin/orders', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('/api/admin/users', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
 
-                if (!prodRes.ok || !orderRes.ok) {
+                if (!prodRes.ok || !orderRes.ok || !userRes.ok) {
                     throw new Error("Failed to fetch data");
                 }
 
                 const products = await prodRes.json();
                 const orders = await orderRes.json();
+                const users = await userRes.json();
 
                 // Set Inventory state
                 setInventory(products);
                 setOrders(orders);
+                setUsers(users);
 
                 // Calculate Stats
                 const totalRevenue = orders.reduce((acc: number, curr: any) => acc + (curr.totalAmount || 0), 0);

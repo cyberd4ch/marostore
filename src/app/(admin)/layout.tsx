@@ -2,7 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import Link from 'next/link';
-import { LayoutDashboard, ShoppingBag, ListOrdered, Home } from 'lucide-react';
+import { UserCircleIcon, LayoutDashboard, ShoppingBag, ListOrdered, Home } from 'lucide-react';
 import AdminGuard from "@/components/AdminGuard";
 
 // Ensure these match your folder paths exactly
@@ -10,6 +10,7 @@ const sidebarLinks = [
     { name: 'Analytics', href: '/dashboard', icon: LayoutDashboard },
     { name: 'Products', href: '/dashboard/products', icon: ShoppingBag },
     { name: 'Orders', href: '/dashboard/orders', icon: ListOrdered },
+    { name: 'Users', href: '/dashboard/users', icon: UserCircleIcon },
 ];
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
