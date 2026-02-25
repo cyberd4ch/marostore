@@ -4,20 +4,23 @@ import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/fi
 import { adminAuth, adminDb } from '@/lib/firebase-admin';
 
 // GET: Fetch all registered users
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        const usersRef = collection(db, 'users');
-        const q = query(usersRef, orderBy('email', 'asc'));
-        const querySnapshot = await getDocs(q);
+        // 1. Verify the requester is actually an Admin
+        const token = req.headers.get('Authorization')?.split('Bearer ')[1];
+        const decoded = await adminAuth.verifyIdToken(token!);
+        if (!decoded.admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-        const users = querySnapshot.docs.map(doc => ({
+        // 2. Fetch from Firestore
+        const snapshot = await adminDb.collection('users').orderBy('email').get();
+        const users = snapshot.docs.map(doc => ({
             uid: doc.id,
             ...doc.data()
         }));
 
         return NextResponse.json(users);
-    } catch (error: any) {
-        return NextResponse.json({ error: "Failed to fetch users" }, { status: 500 });
+    } catch (error) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 }
 
