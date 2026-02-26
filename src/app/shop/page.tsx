@@ -1,28 +1,67 @@
-// src/app/shop/page.tsx
 'use client';
 
-import { useSelector } from 'react-redux';
-import { selectCategoriesIsLoading } from '@/store/categories/category.selector';
-import SHOP_DATA from '@/app/utils/shop/shop-data';
+import { useState, useEffect } from 'react';
 import CategoryPreview from '@/components/category-preview/category-preview.component';
 import Spinner from '@/components/spinner/spinner.component';
+import { toast } from 'sonner';
 
 export default function ShopPage() {
-    // If SHOP_DATA is an array, we map directly. If it's an object, we use Object.values
-    const categories = Array.isArray(SHOP_DATA) ? SHOP_DATA : Object.values(SHOP_DATA);
-    const isLoading = useSelector(selectCategoriesIsLoading);
+    const [categories, setCategories] = useState<any[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
+
+    useEffect(() => {
+        const fetchLiveProducts = async () => {
+            try {
+                // 1. Call your bulletproof API route
+                const response = await fetch('/api/products');
+                const allProducts = await response.json();
+
+                if (!response.ok) throw new Error(allProducts.error || "Failed to fetch");
+
+                // 2. Group products by Category (Normalizing case sensitivity)
+                const grouped = allProducts.reduce((acc: any, product: any) => {
+                    const categoryName = (product.category || 'New Arrivals').toUpperCase();
+                    
+                    if (!acc[categoryName]) {
+                        acc[categoryName] = { title: categoryName, items: [] };
+                    }
+                    
+                    acc[categoryName].items.push(product);
+                    return acc;
+                }, {});
+
+                setCategories(Object.values(grouped));
+            } catch (error: any) {
+                console.error("Shop Load Error:", error);
+                toast.error(`Shop offline: ${error.message}`);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+
+        fetchLiveProducts();
+    }, []);
 
     if (isLoading) return <Spinner />;
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col gap-16 md:gap-24">
-            {categories.map((category: any) => (
-                <CategoryPreview 
-                    key={category.id || category.title} 
-                    title={category.title} // PASS THE ACTUAL TITLE HERE
-                    products={category.items || []} 
-                />
-            ))}
+            {categories.length > 0 ? (
+                categories.map((category: any) => (
+                    <CategoryPreview 
+                        key={category.title} 
+                        title={category.title} 
+                        products={category.items} 
+                    />
+                ))
+            ) : (
+                <div className="text-center py-40">
+                    <h2 className="text-2xl font-black text-slate-300 uppercase tracking-widest">
+                        Inventory Empty
+                    </h2>
+                    <p className="text-slate-400 mt-2">Check back soon for new drops.</p>
+                </div>
+            )}
         </div>
     );
 }
