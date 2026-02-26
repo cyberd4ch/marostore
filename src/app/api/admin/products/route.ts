@@ -36,10 +36,23 @@ async function isAuthorized(req: Request) {
     return await verifyAdminStatus(token);
 }
 
-export async function GET() {
+export async function GET(req: Request) {
     try {
-        // Use Admin SDK to bypass all client-side security rules
-        const querySnapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').get();
+        // 1. Check if the user is an admin
+        const authorized = await isAuthorized(req);
+
+        let query;
+        if (authorized) {
+            // ADMIN VIEW: Fetch everything
+            query = adminDb.collection('products').orderBy('createdAt', 'desc');
+        } else {
+            // PUBLIC VIEW: Only fetch 'published' items
+            query = adminDb.collection('products')
+                .where('status', '==', 'published')
+                .orderBy('createdAt', 'desc');
+        }
+
+        const querySnapshot = await query.get();
 
         const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
@@ -48,6 +61,7 @@ export async function GET() {
 
         return NextResponse.json(products);
     } catch (error: any) {
+        console.error("Fetch Error:", error);
         return NextResponse.json({ error: "Failed to fetch products" }, { status: 500 });
     }
 }
