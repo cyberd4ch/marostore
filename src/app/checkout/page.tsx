@@ -1,18 +1,16 @@
 'use client';
 
-import { useCallback, useState } from 'react';
-import { useSelector, useDispatch } from 'react-redux';
+import { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import {
-    CreditCard, ChevronRight, MapPin,
-    User, ShieldCheck, Lock, ArrowLeft
+import { 
+    User, MapPin, ArrowLeft, Loader2, ShieldCheck, Lock 
 } from "lucide-react";
 
-import { selectCartItems } from '../../store/cart/cart.selector';
-import { CartItem as TCartItem } from '../../store/cart/cart.types';
-
+import { selectCartItems } from '@/store/cart/cart.selector';
+import { selectCurrentUser } from '@/store/user/user.selector';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -26,194 +24,165 @@ import {
 
 export default function CheckoutPage() {
     const cartItems = useSelector(selectCartItems);
+    const currentUser = useSelector(selectCurrentUser);
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Pricing Logic from your Redux store reference
+    // 1. FORM STATE - Initialized with Redux data if available
+    const [formData, setFormData] = useState({
+        firstName: '',
+        lastName: '',
+        email: '',
+        phone: '',
+        address: '',
+        city: '',
+        postCode: ''
+    });
+
+    // Auto-fill form when user is loaded
+    useEffect(() => {
+        if (currentUser) {
+            const nameParts = (currentUser.displayName || '').split(' ');
+            setFormData(prev => ({
+                ...prev,
+                firstName: nameParts[0] || '',
+                lastName: nameParts.slice(1).join(' ') || '',
+                email: currentUser.email || '',
+                phone: currentUser.phoneNumber || '',
+                address: currentUser.address || '',
+                city: currentUser.city || '',
+            }));
+        }
+    }, [currentUser]);
+
+    const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const { id, value } = e.target;
+        setFormData(prev => ({ ...prev, [id]: value }));
+    };
+
+    // 2. PRICING LOGIC
     const cartTotal = cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
     const shippingCost = cartTotal > 200 ? 0 : 20.00;
-    const discount = 9.00; // Example static discount
-    const totalPayable = cartTotal + shippingCost - discount;
+    const totalPayable = cartTotal + shippingCost;
 
-    const handlePlaceOrder = useCallback(async () => {
+    // 3. PAYMENT LOGIC
+    const handlePlaceOrder = async () => {
+        // Strict Validation
+        const requiredFields = ['firstName', 'email', 'address', 'city', 'phone'];
+        const missing = requiredFields.filter(field => !formData[field as keyof typeof formData]);
+
+        if (missing.length > 0) {
+            return toast.error(`Please provide your ${missing.join(', ')}`);
+        }
+
+        if (cartItems.length === 0) {
+            return toast.error("Your cart is empty!");
+        }
+
         setIsProcessing(true);
+        
         try {
-            // Your payment gateway logic here
-            toast.success("Order placed successfully!");
-            router.push('/order-confirmation');
-        } catch (error) {
-            toast.error("Payment failed. Please try again.");
-        } finally {
+            const checkoutData = {
+                name: `${formData.firstName} ${formData.lastName}`,
+                email: formData.email,
+                phone: formData.phone,
+                address: `${formData.address}, ${formData.city}`,
+            };
+            
+            // Temporary storage for success page
+            localStorage.setItem('pendingCheckout', JSON.stringify(checkoutData));
+
+            const response = await fetch('/api/payment', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: formData.email,
+                    amount: totalPayable,
+                    cart: cartItems,
+                    customerDetails: checkoutData
+                }),
+            });
+
+            const data = await response.json();
+
+            if (data.authorization_url) {
+                window.location.href = data.authorization_url;
+            } else {
+                throw new Error(data.message || "Payment initialization failed");
+            }
+        } catch (error: any) {
+            toast.error(error.message || "Something went wrong");
             setIsProcessing(false);
         }
-    }, [router]);
+    };
 
     return (
         <div className="min-h-screen bg-slate-50/50 py-12">
             <div className="container mx-auto max-w-7xl px-6">
-                {/* Header with Navigation Back */}
-                <div className="mb-8 flex items-center justify-between">
-                    <div>
-                        <Button
-                            variant="ghost"
-                            onClick={() => router.back()}
-                            className="mb-2 -ml-4 text-slate-500 hover:text-slate-900"
-                        >
-                            <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Cart
-                        </Button>
-                        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Checkout</h1>
-                    </div>
-                    <div className="hidden items-center gap-2 text-sm font-medium text-slate-500 md:flex">
-                        <Lock className="h-4 w-4 text-green-500" />
-                        Secure Checkout
-                    </div>
-                </div>
+                <Button variant="ghost" onClick={() => router.back()} className="mb-4 -ml-4 text-slate-500">
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Cart
+                </Button>
+                <h1 className="text-4xl font-black tracking-tight text-slate-900 uppercase italic mb-8">Checkout</h1>
 
                 <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_450px]">
-                    {/* LEFT COLUMN: FORMS */}
+                    {/* LEFT: FORM */}
                     <div className="space-y-6">
-                        {/* Coupon Code Section */}
-                        <Card className="rounded-[2rem] border-none bg-white shadow-sm">
-                            <CardHeader className="px-8 pt-8">
-                                <CardTitle className="text-xl">Coupon Code</CardTitle>
-                                <p className="text-sm text-slate-500">Enter code to get discount instantly</p>
-                            </CardHeader>
-                            <CardContent className="flex gap-3 px-8 pb-8 pt-4">
-                                <Input
-                                    placeholder="Add discount code"
-                                    className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
-                                />
-                                <Button className="h-12 rounded-xl bg-[#141414] px-8 font-bold text-white">
-                                    Apply
-                                </Button>
-                            </CardContent>
-                        </Card>
-
-                        {/* Accordion for Personal, Shipping, and Payment Details */}
-                        <Accordion type="single" defaultValue="personal" className="space-y-4">
+                        <Accordion type="multiple" defaultValue={["personal", "shipping"]} className="space-y-4">
                             <AccordionItem value="personal" className="rounded-[2rem] border-none bg-white px-8 shadow-sm">
-                                <AccordionTrigger className="py-6 hover:no-underline">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                                            <User className="h-5 w-5 text-slate-600" />
-                                        </div>
-                                        <span className="text-lg font-bold">Your Personal Details</span>
-                                    </div>
+                                <AccordionTrigger className="hover:no-underline font-black uppercase italic">
+                                    <User className="mr-2 h-5 w-5 text-blue-600" /> Personal Info
                                 </AccordionTrigger>
-                                <AccordionContent className="pb-8 pt-4">
-                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold">First Name</label>
-                                            <Input placeholder="Enter first name" className="h-12 rounded-xl" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold">Last Name</label>
-                                            <Input placeholder="Enter last name" className="h-12 rounded-xl" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold">Email Address</label>
-                                            <Input placeholder="Email address" className="h-12 rounded-xl" />
-                                        </div>
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold">Phone Number</label>
-                                            <Input placeholder="Phone number" className="h-12 rounded-xl" />
-                                        </div>
-                                    </div>
+                                <AccordionContent className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+                                    <Input id="firstName" value={formData.firstName} onChange={handleInputChange} placeholder="First Name" className="h-12 rounded-xl" />
+                                    <Input id="lastName" value={formData.lastName} onChange={handleInputChange} placeholder="Last Name" className="h-12 rounded-xl" />
+                                    <Input id="email" type="email" value={formData.email} onChange={handleInputChange} placeholder="Email" className="h-12 rounded-xl" />
+                                    <Input id="phone" value={formData.phone} onChange={handleInputChange} placeholder="Phone" className="h-12 rounded-xl" />
                                 </AccordionContent>
                             </AccordionItem>
 
                             <AccordionItem value="shipping" className="rounded-[2rem] border-none bg-white px-8 shadow-sm">
-                                <AccordionTrigger className="py-6 hover:no-underline">
-                                    <div className="flex items-center gap-3">
-                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
-                                            <MapPin className="h-5 w-5 text-slate-600" />
-                                        </div>
-                                        <span className="text-lg font-bold">Shipping Address</span>
-                                    </div>
+                                <AccordionTrigger className="hover:no-underline font-black uppercase italic">
+                                    <MapPin className="mr-2 h-5 w-5 text-blue-600" /> Shipping Details
                                 </AccordionTrigger>
-                                <AccordionContent className="pb-8 pt-4">
-                                    <div className="space-y-4">
-                                        <div className="space-y-2">
-                                            <label className="text-sm font-bold">Mailing Address</label>
-                                            <Input placeholder="Mailing Address" className="h-12 rounded-xl" />
-                                        </div>
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <Input placeholder="City" className="h-12 rounded-xl" />
-                                            <Input placeholder="Post Code" className="h-12 rounded-xl" />
-                                        </div>
+                                <AccordionContent className="space-y-4 pt-4">
+                                    <Input id="address" value={formData.address} onChange={handleInputChange} placeholder="Street / Digital Address" className="h-12 rounded-xl" />
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <Input id="city" value={formData.city} onChange={handleInputChange} placeholder="City" className="h-12 rounded-xl" />
+                                        <Input id="postCode" value={formData.postCode} onChange={handleInputChange} placeholder="Post Code" className="h-12 rounded-xl" />
                                     </div>
                                 </AccordionContent>
                             </AccordionItem>
                         </Accordion>
                     </div>
 
-                    {/* RIGHT COLUMN: ORDER SUMMARY */}
-                    <div className="lg:sticky lg:top-8">
+                    {/* RIGHT: SUMMARY */}
+                    <div className="lg:sticky lg:top-24">
                         <Card className="rounded-[2.5rem] border-none bg-white p-2 shadow-2xl">
                             <CardHeader className="px-8 pt-8">
-                                <CardTitle className="text-2xl font-bold text-slate-900">Order Summary</CardTitle>
-                                <p className="text-slate-500">You have {cartItems.length} items in your cart</p>
+                                <CardTitle className="text-2xl font-black italic uppercase italic">Summary</CardTitle>
                             </CardHeader>
-
-                            <CardContent className="px-8 pt-4">
-                                {/* Item List */}
-                                <div className="max-h-[300px] space-y-4 overflow-y-auto pr-2 custom-scrollbar">
-                                    {cartItems.map((item) => (
-                                        <div key={item.id} className="flex items-center gap-4">
-                                            <div className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100 p-2">
-                                                <Image
-                                                    src={item.imageUrl}
-                                                    alt={item.name}
-                                                    width={64}
-                                                    height={64}
-                                                    className="object-contain"
-                                                />
-                                            </div>
-                                            <div className="flex-1">
-                                                <h4 className="text-sm font-bold text-slate-900">{item.name}</h4>
-                                                <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
-                                            </div>
-                                            <span className="text-sm font-bold">₵{item.price}</span>
+                            <CardContent className="px-8 space-y-4">
+                                {cartItems.map((item) => (
+                                    <div key={item.id} className="flex items-center gap-4">
+                                        <Image src={item.imageUrl} alt={item.name} width={48} height={48} className="rounded-lg border object-contain" />
+                                        <div className="flex-1">
+                                            <p className="text-xs font-bold uppercase">{item.name}</p>
+                                            <p className="text-[10px] font-black text-blue-600">QTY: {item.quantity}</p>
                                         </div>
-                                    ))}
-                                </div>
-
-                                <Separator className="my-6 bg-slate-100" />
-
-                                {/* Financials */}
-                                <div className="space-y-3">
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Subtotal</span>
-                                        <span className="font-bold text-slate-900">₵{cartTotal.toFixed(2)}</span>
+                                        <span className="text-sm font-black">₵{(item.price * item.quantity).toLocaleString()}</span>
                                     </div>
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Shipping Cost (+)</span>
-                                        <span className="font-bold text-slate-900">₵{shippingCost.toFixed(2)}</span>
-                                    </div>
-                                    <div className="flex justify-between text-slate-600">
-                                        <span>Discount (-)</span>
-                                        <span className="font-bold text-red-500">₵{discount.toFixed(2)}</span>
-                                    </div>
-                                    <Separator className="bg-slate-100" />
-                                    <div className="flex justify-between text-2xl font-bold text-slate-900 pt-2">
-                                        <span>Total Payable</span>
-                                        <span>₵{totalPayable.toFixed(2)}</span>
-                                    </div>
+                                ))}
+                                <Separator />
+                                <div className="space-y-2 text-xs font-bold uppercase">
+                                    <div className="flex justify-between text-slate-400"><span>Subtotal</span><span>₵{cartTotal.toLocaleString()}</span></div>
+                                    <div className="flex justify-between text-slate-400"><span>Shipping</span><span>₵{shippingCost.toFixed(2)}</span></div>
+                                    <div className="flex justify-between text-2xl font-black text-slate-900 pt-2"><span>Total</span><span className="text-blue-600">₵{totalPayable.toLocaleString()}</span></div>
                                 </div>
                             </CardContent>
-
-                            <CardFooter className="flex flex-col gap-4 px-8 pb-10 pt-6">
-                                <Button
-                                    onClick={handlePlaceOrder}
-                                    disabled={isProcessing || cartItems.length === 0}
-                                    className="h-16 w-full rounded-2xl bg-[#141414] text-xl font-bold text-white hover:bg-black"
-                                >
-                                    {isProcessing ? "Processing..." : "Place Order"}
+                            <CardFooter className="px-8 pb-10">
+                                <Button onClick={handlePlaceOrder} disabled={isProcessing} className="w-full h-16 rounded-2xl bg-slate-900 text-xl font-black italic uppercase text-white hover:bg-black transition-all shadow-xl">
+                                    {isProcessing ? <Loader2 className="animate-spin" /> : "Secure Checkout"}
                                 </Button>
-                                <p className="text-center text-xs text-slate-400">
-                                    By placing your order, you agree to our company <span className="font-bold underline">Privacy Policy</span> and <span className="font-bold underline">Conditions of use</span>.
-                                </p>
                             </CardFooter>
                         </Card>
                     </div>

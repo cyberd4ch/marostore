@@ -16,7 +16,7 @@ export enum USER_ACTION_TYPES {
 
 // Add this interface
 export type UserData = {
-    id: string;
+    uid: string;
     email: string;
     displayName: string;
     createdAt: any;

@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Search, Menu, Home, ShoppingBag, Info, PhoneCall, User as UserIcon, LogOut } from "lucide-react";
+import { X, Search, Menu, Home, ShoppingBag, Info, PhoneCall, User as UserIcon, LogOut, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { SearchCommand } from "../search-command/search-command";
 
@@ -25,7 +25,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
 
     const toggleDrawer = useCallback(() => setIsOpen((prev) => !prev), []);
 
-    // Prevent body scroll when menu is open
     useEffect(() => {
         if (isOpen) document.body.style.overflow = "hidden";
         else document.body.style.overflow = "unset";
@@ -42,7 +41,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
 
     return (
         <>
-            {/* Custom Trigger Button */}
             <Button 
                 size="icon" 
                 variant="ghost" 
@@ -56,7 +54,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                 <AnimatePresence>
                     {isOpen && (
                         <div className="fixed inset-0 z-[10000] flex justify-start">
-                            {/* Backdrop - matching your cart dropdown */}
                             <motion.div
                                 initial={{ opacity: 0 }}
                                 animate={{ opacity: 1 }}
@@ -65,7 +62,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                                 className="absolute inset-0 bg-black/40 backdrop-blur-[2px]"
                             />
 
-                            {/* Drawer Content */}
                             <motion.div
                                 initial={{ x: "-100%" }}
                                 animate={{ x: 0 }}
@@ -73,7 +69,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                                 transition={{ type: "spring", damping: 30, stiffness: 250 }}
                                 className="relative flex h-full w-[85vw] max-w-[350px] flex-col bg-white shadow-2xl"
                             >
-                                {/* Header */}
                                 <div className="px-6 pt-10 pb-6">
                                     <button 
                                         onClick={toggleDrawer}
@@ -88,7 +83,6 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                                     </Link>
                                 </div>
 
-                                {/* Navigation Links */}
                                 <nav className="flex-1 px-4 py-4 space-y-1">
                                     {navLinks.map((link) => (
                                         <Link
@@ -103,8 +97,7 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
                                     ))}
                                 </nav>
 
-                                {/* Footer Area */}
-                                <div className="border-t border-slate-50 bg-slate-50/50 p-6 space-y-4">
+                                <div className="border-t border-slate-100 bg-slate-50/50 p-6 space-y-4">
                                     <Button
                                         variant="outline"
                                         onClick={() => {
@@ -119,6 +112,18 @@ export const NavigationSheet = ({ currentUser, signOutUser }: NavigationSheetPro
 
                                     {currentUser ? (
                                         <div className="space-y-3">
+                                            {/* --- ADMIN ONLY MOBILE BUTTON --- */}
+                                            {currentUser.isAdmin && (
+                                                <Button 
+                                                    asChild 
+                                                    className="w-full rounded-2xl h-14 bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-200 font-black tracking-widest transition-all shadow-sm uppercase text-xs"
+                                                >
+                                                    <Link href="/dashboard" onClick={toggleDrawer}>
+                                                        <ShieldCheck className="mr-2 h-5 w-5" /> Admin Dashboard
+                                                    </Link>
+                                                </Button>
+                                            )}
+
                                             <Button asChild variant="secondary" className="w-full rounded-2xl h-14 font-bold">
                                                 <Link href={`/u/${(currentUser as any).username || 'profile'}`} onClick={toggleDrawer}>
                                                     <UserIcon className="mr-2 h-5 w-5" /> My Profile

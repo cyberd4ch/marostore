@@ -18,6 +18,27 @@ import {
 
 import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
 
+const OrderSkeleton = () => (
+    <div className="space-y-4 animate-pulse">
+        {[1, 2, 3].map((i) => (
+            <div key={i} className="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
+                <div className="space-y-2">
+                    {/* Order ID Placeholder */}
+                    <div className="h-3 w-24 bg-slate-200 rounded shadow-sm" />
+                    {/* Date Placeholder */}
+                    <div className="h-2 w-16 bg-slate-200 rounded shadow-sm" />
+                </div>
+                <div className="flex flex-col items-end space-y-2">
+                    {/* Amount Placeholder */}
+                    <div className="h-4 w-12 bg-slate-200 rounded shadow-sm" />
+                    {/* Status Placeholder */}
+                    <div className="h-3 w-10 bg-slate-200 rounded-full shadow-sm" />
+                </div>
+            </div>
+        ))}
+    </div>
+);
+
 const UserProfile = () => {
     const router = useRouter();
     const dispatch = useDispatch();
@@ -27,22 +48,20 @@ const UserProfile = () => {
     const wishlistRef = useRef<HTMLDivElement>(null);
     const view = searchParams.get('view');
 
+    // 1. STATE DECLARATIONS
     const [copied, setCopied] = useState(false);
     const [userData, setUserData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [isEditing, setIsEditing] = useState(false);
     const [isSaving, setIsSaving] = useState(false);
-    
-    // HYDRATION SHIELD: Prevents Redux/LocalStorage mismatch errors (#310)
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loadingOrders, setLoadingOrders] = useState(false);
     const [isHydrated, setIsHydrated] = useState(false);
+    const [editFields, setEditFields] = useState<any>({});
 
-    useEffect(() => {
-        setIsHydrated(true);
-    }, []);
-
+    // 2. REDUX SELECTORS
     const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
-    
     const recentlyViewedItems = useSelector((state: any) => {
         try {
             return state.recentlyViewed?.items || [];
@@ -51,10 +70,50 @@ const UserProfile = () => {
         }
     });
 
+    // 3. DERIVED LOGIC (Must be declared before UseEffects)
     const isOwnProfile = currentUser && currentUser.username === username;
-    const [editFields, setEditFields] = useState<any>({});
 
-    // 1. Fetch User Data
+    // 4. USE EFFECTS
+    useEffect(() => {
+        setIsHydrated(true);
+    }, []);
+
+    // Fetch Order History
+    useEffect(() => {
+    const fetchUserOrders = async () => {
+        // Import auth to get the current Firebase user directly
+        const { auth } = await import("@/app/utils/firebase/firebase.utils");
+        const firebaseUser = auth.currentUser;
+
+        // Check if profile belongs to the logged-in user
+        if (!isOwnProfile || !firebaseUser?.uid) return;
+        
+        setLoadingOrders(true);
+        try {
+            const token = await firebaseUser.getIdToken();
+
+            const response = await fetch(`/api/orders/user/${firebaseUser.uid}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            const data = await response.json();
+            if (data.success) {
+                setOrders(data.orders);
+            }
+        } catch (error) {
+            console.error("Order fetch failed:", error);
+        } finally {
+            setLoadingOrders(false);
+        }
+    };
+
+    if (isHydrated && isOwnProfile) {
+        fetchUserOrders();
+    }
+}, [isOwnProfile, isHydrated]); // Added specific uid to dependencies
+
+    // Fetch Profile Data
     useEffect(() => {
         const fetchUserData = async () => {
             if (!username || typeof username !== "string") return;
@@ -79,7 +138,7 @@ const UserProfile = () => {
         fetchUserData();
     }, [username]);
 
-    // 2. Handle Auto-Scroll to Wishlist
+    // Scroll to Wishlist effect
     useEffect(() => {
         if (!loading && view === 'wishlist' && wishlistRef.current) {
             const timer = setTimeout(() => {
@@ -89,6 +148,7 @@ const UserProfile = () => {
         }
     }, [view, loading]);
 
+    // 5. HANDLERS
     const handleShare = () => {
         const url = window.location.href;
         navigator.clipboard.writeText(url);
@@ -116,10 +176,8 @@ const UserProfile = () => {
     };
 
     const handleClearHistory = () => {
-        if (typeof clearRecentlyViewed === 'function') {
-            dispatch(clearRecentlyViewed());
-            toast.success("Browsing history cleared");
-        }
+        dispatch(clearRecentlyViewed());
+        toast.success("Browsing history cleared");
     };
 
     if (loading) return (
@@ -133,7 +191,6 @@ const UserProfile = () => {
     return (
         <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center font-sans antialiased">
             <div className="w-full max-w-xl relative">
-
                 {/* Profile Header */}
                 <div className="flex flex-col items-center mb-8 text-center relative">
                     <button
@@ -169,7 +226,7 @@ const UserProfile = () => {
                             )}
                         </div>
 
-                        {/* Preferences Section */}
+                        {/* Fashion Preferences */}
                         <div className="p-8 md:p-10 space-y-8">
                             <div className="space-y-4">
                                 <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fashion Preferences</h2>
@@ -202,63 +259,66 @@ const UserProfile = () => {
                                     </div>
                                 </div>
                             </div>
-
-                            <div className="space-y-4">
-                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Contact & Shipping</h2>
-                                <div className="space-y-3">
-                                    <div className="p-4 border border-slate-100 rounded-2xl flex flex-col gap-1">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                            <Phone size={10} /> Phone
-                                        </p>
-                                        {isEditing ? (
-                                            <Input
-                                                value={editFields.phoneNumber}
-                                                onChange={(e) => setEditFields({ ...editFields, phoneNumber: e.target.value })}
-                                                className="h-8 text-sm bg-slate-50 border-none"
-                                            />
-                                        ) : (
-                                            <p className="font-semibold text-slate-900">{userData.phoneNumber || 'Not provided'}</p>
-                                        )}
-                                    </div>
-                                    <div className="p-4 border border-slate-100 rounded-2xl space-y-2">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold flex items-center gap-1">
-                                            <MapPin size={10} /> Address
-                                        </p>
-                                        {isEditing ? (
-                                            <div className="space-y-2">
-                                                <Input value={editFields.address} onChange={(e) => setEditFields({ ...editFields, address: e.target.value })} placeholder="Street" className="h-8 text-sm" />
-                                                <div className="grid grid-cols-2 gap-2">
-                                                    <Input value={editFields.city} onChange={(e) => setEditFields({ ...editFields, city: e.target.value })} placeholder="City" className="h-8 text-sm" />
-                                                    <Input value={editFields.postCode} onChange={(e) => setEditFields({ ...editFields, postCode: e.target.value })} placeholder="Post Code" className="h-8 text-sm" />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <div className="font-semibold text-slate-900">
-                                                <p>{userData.address || 'No address saved'}</p>
-                                            </div>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
                         </div>
 
-                        {/* Recently Viewed - HYDRATED CONTENT */}
+{/* ORDER HISTORY SECTION */}
+{isOwnProfile && isHydrated && (
+    <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
+        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-6">
+            Order History
+        </h2>
+        
+        {loadingOrders ? (
+            /* Using the Skeleton instead of the Loader2 spinner */
+            <OrderSkeleton /> 
+        ) : orders.length > 0 ? (
+            <div className="space-y-4">
+                {orders.map((order) => (
+                    <div 
+                        key={order.id} 
+                        className="p-4 bg-slate-50 rounded-2xl flex justify-between items-center transition-all hover:bg-slate-100 hover:shadow-sm"
+                    >
+                        <div>
+                            <p className="text-xs font-black uppercase italic tracking-tighter text-slate-900">
+                                Order #{order.orderReference?.slice(-6) || "N/A"}
+                            </p>
+                            <p className="text-[10px] text-slate-500">
+                                {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}
+                            </p>
+                        </div>
+                        <div className="text-right">
+                            <p className="text-sm font-black text-blue-600">
+                                ₵{order.totalAmount?.toFixed(2) || "0.00"}
+                            </p>
+                            <span className="text-[9px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold uppercase">
+                                {order.paymentStatus || "Paid"}
+                            </span>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        ) : (
+            <div className="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                <p className="text-xs text-slate-400 italic font-medium">No orders found yet.</p>
+            </div>
+        )}
+    </div>
+)}
+
+                        {/* Recently Viewed */}
                         {isHydrated && recentlyViewedItems.length > 0 && (
                             <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
                                 <div className="flex items-center justify-between mb-6">
-                                    <div className="space-y-1">
-                                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Recently Viewed</h2>
-                                        <p className="text-xs text-slate-500">Pick up where you left off</p>
-                                    </div>
+                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Recently Viewed</h2>
                                     {isOwnProfile && (
-                                        <button onClick={handleClearHistory} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100 transition-colors">
+                                        <button onClick={handleClearHistory} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100">
                                             <X size={12} className="text-slate-400" />
                                         </button>
                                     )}
                                 </div>
                                 <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
                                     {recentlyViewedItems.map((product: any) => (
-                                        <div key={`recent-${product.id}`} className="min-w-[140px] w-[140px] flex-shrink-0 transition-transform hover:scale-105">
+                                        <div key={`recent-${product.id}`} className="min-w-[140px] w-[140px] flex-shrink-0">
                                             <ProductCard product={product} compact={true} />
                                         </div>
                                     ))}
@@ -266,51 +326,16 @@ const UserProfile = () => {
                             </div>
                         )}
 
-                        {/* Wishlist Section - HYDRATED CONTENT */}
-                        {isHydrated && (
-                            <div ref={wishlistRef} className="p-8 md:p-10 border-t border-slate-100 bg-slate-50/30">
-                                <div className="flex items-center justify-between mb-6">
-                                    <div className="space-y-1">
-                                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Your Wishlist</h2>
-                                        <p className="text-xs text-slate-500">{wishlistItems.length} items saved</p>
-                                    </div>
-                                    <Heart className={wishlistItems.length > 0 ? "fill-red-500 text-red-500" : "text-slate-300"} size={18} />
-                                </div>
-                                {wishlistItems.length > 0 ? (
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {wishlistItems.slice(0, 4).map((product: any) => (
-                                            <div key={`wish-${product.id}`} className="scale-95 origin-top">
-                                                <ProductCard product={product} compact={true} />
-                                            </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-10 border-2 border-dashed border-slate-200 rounded-[2rem]">
-                                        <p className="text-sm text-slate-400">No items in wishlist yet.</p>
-                                    </div>
-                                )}
-                            </div>
-                        )}
-
                         {/* Footer Action */}
                         {isOwnProfile && (
                             <div className="p-6 bg-slate-900">
-                                {isEditing ? (
-                                    <button
-                                        onClick={handleSave}
-                                        disabled={isSaving}
-                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
-                                    >
-                                        {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : <><Save size={16} /> Save Preferences</>}
-                                    </button>
-                                ) : (
-                                    <button
-                                        onClick={() => setIsEditing(true)}
-                                        className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold opacity-80 hover:opacity-100 transition-opacity"
-                                    >
-                                        <Edit2 size={16} /> Edit Shopping Preferences
-                                    </button>
-                                )}
+                                <button
+                                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                                    disabled={isSaving}
+                                    className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
+                                >
+                                    {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : isEditing ? <><Save size={16} /> Save Changes</> : <><Edit2 size={16} /> Edit Profile</>}
+                                </button>
                             </div>
                         )}
                     </CardContent>
