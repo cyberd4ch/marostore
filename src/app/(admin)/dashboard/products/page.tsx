@@ -178,6 +178,10 @@ const ProductManager = () => {
                             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Visuals</label>
                             <CldUploadWidget
                                 uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+                                options={{
+        clientAllowedFormats: ["png", "jpeg", "jpg"], // FORCES SPECIFIC FORMATS
+        maxFiles: 1,
+    }}
                                 onSuccess={(result: any) => {
                                     if (result.event === "success") {
                                         setProduct(prev => ({ ...prev, imageUrl: result.info.secure_url }));

@@ -30,10 +30,15 @@ async function checkAdminStatus(req: Request) {
     }
 }
 
+async function isAuthorized(req: Request) {
+    const token = req.headers.get('Authorization')?.split('Bearer ')[1];
+    if (!token) return false;
+    return await verifyAdminStatus(token);
+}
+
 export async function GET() {
     try {
-        const productsRef = collection(db, 'products');
-        const q = query(productsRef, orderBy('createdAt', 'desc'));
+        // Use Admin SDK to bypass all client-side security rules
         const querySnapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').get();
 
         const products = querySnapshot.docs.map(doc => ({
@@ -49,24 +54,27 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
-        const adminUser = await checkAdminStatus(req);
-        if (!adminUser) {
+        // 1. CHECK SECURITY
+        const authorized = await isAuthorized(req);
+        if (!authorized) {
             return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
         }
-        const data = await req.json();
-        const productsRef = collection(db, 'products');
 
+        const data = await req.json();
+
+        // 2. FORMAT DATA
         const newProduct = {
             name: data.name,
             price: Number(data.price),
-            stock: Number(data.stock) || 0, // Ensure stock is a Number
+            stock: Number(data.stock) || 0,
             imageUrl: data.imageUrl,
             category: data.category || '',
-            status: data.status || 'published', // <-- NEW
-    activationDate: data.activationDate || null, // <-- NEW
-            createdAt: new Date(),
+            status: data.status || 'published',
+            activationDate: data.activationDate || null,
+            createdAt: new Date(), // Admin SDK uses standard JS Dates
         };
 
+        // 3. SAVE TO FIRESTORE
         const docRef = await adminDb.collection('products').add(newProduct);
         revalidatePath('/shop');
         revalidatePath('/');
@@ -80,25 +88,28 @@ export async function POST(req: Request) {
 
 export async function PUT(req: Request) {
     try {
+        // 1. CHECK SECURITY
+        const authorized = await isAuthorized(req);
+        if (!authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
         const data = await req.json();
         const { id, ...updateData } = data;
 
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        const productDocRef = doc(db, 'products', id);
-
-        // Clean up data before saving
+        // 2. FORMAT DATA
         const cleanedData = {
             ...updateData,
             price: Number(updateData.price),
-            stock: Number(updateData.stock) || 0, // Ensure stock is a Number
-            updatedAt: serverTimestamp()
+            stock: Number(updateData.stock) || 0,
+            updatedAt: new Date()
         };
 
-        // Remove the id from the actual data payload to avoid self-reference in document
+        // Remove the id from the actual data payload
         delete cleanedData.id;
 
-        await updateDoc(productDocRef, cleanedData);
+        // 3. UPDATE FIRESTORE
+        await adminDb.collection('products').doc(id).update(cleanedData);
 
         return NextResponse.json({ success: true, id });
     } catch (error: any) {
@@ -108,11 +119,17 @@ export async function PUT(req: Request) {
 
 export async function DELETE(req: Request) {
     try {
+        // 1. CHECK SECURITY
+        const authorized = await isAuthorized(req);
+        if (!authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
+
         const { searchParams } = new URL(req.url);
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        await deleteDoc(doc(db, 'products', id));
+        // 2. DELETE FROM FIRESTORE
+        await adminDb.collection('products').doc(id).delete();
+        
         return NextResponse.json({ success: true });
     } catch (error: any) {
         return NextResponse.json({ error: "Delete failed" }, { status: 500 });
