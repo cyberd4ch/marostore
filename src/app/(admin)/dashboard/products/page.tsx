@@ -119,27 +119,46 @@ const ProductManager = () => {
                         <div className="space-y-2">
                             <label className="text-[10px] font-bold text-slate-400 uppercase ml-1">Visuals</label>
                             {/* Updated SUCCESS logic here */}
-                            <CldUploadWidget
-                                uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
-                                onSuccess={(result) => {
-                                    // 1. Check if result.info exists and is an object (not a string)
-                                    if (result.info && typeof result.info === 'object' && 'secure_url' in result.info) {
-                                        const url = result.info.secure_url;
-                                        setProduct(prev => ({ ...prev, imageUrl: url }));
-                                        toast.success("Image uploaded!");
-                                    }
-                                }}
-                            >
-                                {({ open }) => (
-                                    <Button type="button" variant="outline" onClick={() => open()} className="w-full border-dashed border-2 h-32 rounded-2xl flex flex-col gap-2 overflow-hidden bg-slate-50 relative">
-                                        {product.imageUrl ? (
-                                            <Image src={product.imageUrl} alt="preview" fill className="object-cover" />
-                                        ) : (
-                                            <><ImagePlus size={24} className="text-slate-400" /> <span className="text-[10px] font-bold text-slate-400 uppercase">Upload Image</span></>
-                                        )}
-                                    </Button>
-                                )}
-                            </CldUploadWidget>
+   <CldUploadWidget
+    uploadPreset={process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET}
+    onSuccess={(result: any) => {
+        // Log this to your console so we can see the real data structure if it fails
+        console.log("Upload Result:", result);
+
+        if (result.event === "success") {
+            const url = result.info.secure_url;
+            setProduct(prev => ({ ...prev, imageUrl: url }));
+            toast.success("Image uploaded and preview ready!");
+        }
+    }}
+    onQueuesEnd={(result, { widget }) => {
+        widget.close(); // Automatically close the widget when done
+    }}
+>
+    {({ open }) => (
+        <Button 
+            type="button" 
+            variant="outline" 
+            onClick={() => open()} 
+            className="w-full border-dashed border-2 h-32 rounded-2xl flex flex-col gap-2 overflow-hidden bg-slate-50 relative"
+        >
+            {product.imageUrl ? (
+                <Image 
+                    src={product.imageUrl} 
+                    alt="preview" 
+                    fill 
+                    className="object-cover"
+                    unoptimized // Helps prevent Next.js image optimization errors during dev
+                />
+            ) : (
+                <>
+                    <ImagePlus size={24} className="text-slate-400"/> 
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Upload Image</span>
+                </>
+            )}
+        </Button>
+    )}
+</CldUploadWidget>
                         </div>
 
                         <Button onClick={handleAction} disabled={isLoading} className={`w-full rounded-2xl h-14 font-bold ${editingId ? 'bg-blue-600 hover:bg-blue-700' : 'bg-black'} text-white transition-all`}>

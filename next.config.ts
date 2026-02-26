@@ -17,6 +17,10 @@ const nextConfig = {
         // optionally specify pathname if needed, e.g., '/**' to allow all
         pathname: '/**',
       },
+      {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
+      }
     ],
     // Remove the deprecated domains array
   },
