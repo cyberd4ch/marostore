@@ -15,17 +15,17 @@ import Image from 'next/image';
 
 const ProductManager = () => {
     // 2. NEW STATE: Added status and activationDate
-// 1. EXPANDED STATE SCHEMA
+    // 1. EXPANDED STATE SCHEMA
     const initialState = {
-        name: '', 
-        price: '', 
+        name: '',
+        price: '',
         discountPrice: '', // New
-        imageUrl: '', 
+        imageUrl: '',
         gallery: [] as string[], // New: Multiple photos
-        category: '', 
+        category: '',
         brand: '', // New
-        stock: '', 
-        status: 'published', 
+        stock: '',
+        status: 'published',
         activationDate: '',
         sex: 'unisex', // New
         colors: '', // Will be stored as array, handled as string in input
@@ -44,7 +44,7 @@ const ProductManager = () => {
     const fetchInventory = async () => {
         setIsFetching(true);
         try {
-            const res = await fetch('/api/admin/products');
+            const res = await fetch('/api/products');
             const data = await res.json();
             if (Array.isArray(data)) setInventory(data);
         } catch (error) {
@@ -56,7 +56,7 @@ const ProductManager = () => {
 
     useEffect(() => { fetchInventory(); }, []);
 
-const startEdit = (item: any) => {
+    const startEdit = (item: any) => {
         setEditingId(item._id);
         const formattedDate = item.activationDate ? new Date(item.activationDate).toISOString().slice(0, 16) : '';
 
@@ -77,14 +77,13 @@ const startEdit = (item: any) => {
         setProduct(initialState);
     };
 
-    const handleAction = async () => {
-    // 1. Validation
+    // ... (keep state and other functions)
+
+const handleAction = async () => {
     if (!product.imageUrl) return toast.error("Main image is required");
     if (!product.name || !product.price) return toast.error("Name and Price are required");
 
     setIsLoading(true);
-    
-    // FIX 1: Define the missing 'method' variable
     const method = editingId ? 'PUT' : 'POST';
     
     let token;
@@ -97,30 +96,25 @@ const startEdit = (item: any) => {
         return;
     }
 
-    // FIX 2: Data Transformation (Ensuring colors/sizes are arrays for the live site)
     const body = {
         ...product,
         id: editingId,
         price: Number(product.price),
         discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
         stock: Number(product.stock),
-        // Convert comma-separated strings back into clean arrays
         colors: typeof product.colors === 'string' 
             ? product.colors.split(',').map(c => c.trim()).filter(c => c !== "") 
             : product.colors,
         sizes: typeof product.sizes === 'string' 
             ? product.sizes.split(',').map(s => s.trim()).filter(s => s !== "") 
             : product.sizes,
-        // Ensure status is explicitly sent
         status: product.status,
-        activationDate: product.status === 'draft' && product.activationDate 
-            ? new Date(product.activationDate).toISOString() 
-            : null
     };
 
     try {
+        // ENSURE THIS URL STARTS WITH /
         const response = await fetch('/api/products', {
-            method, // Now defined!
+            method,
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
@@ -128,40 +122,53 @@ const startEdit = (item: any) => {
             body: JSON.stringify(body),
         });
 
-        const result = await response.json();
-
-        if (response.ok) {
-            toast.success(editingId ? "Product updated!" : "Success! Item is live.");
-            cancelEdit();
-            fetchInventory();
-        } else {
-            toast.error(result.message || "Failed to save product");
+        // --- BULLETPROOF PARSING ---
+        const contentType = response.headers.get("content-type");
+        if (!response.ok || !contentType || !contentType.includes("application/json")) {
+            const errorData = await response.text(); // Read as text if not JSON
+            console.error("Server Error Response:", errorData);
+            throw new Error(`Server Error: ${response.status}`);
         }
-    } catch (error) {
+
+        const result = await response.json();
+        // ---------------------------
+
+        toast.success(editingId ? "Product updated!" : "Success! Item is live.");
+        cancelEdit();
+        fetchInventory();
+        
+    } catch (error: any) {
         console.error("Submission error:", error);
-        toast.error("Network error. Check your connection.");
+        toast.error(error.message || "Network error. Check console.");
     } finally {
         setIsLoading(false);
     }
 };
 
-    const handleDelete = async (id: string) => {
-        if (!window.confirm("Delete this product?")) return;
-        const token = await auth.currentUser?.getIdToken(); // Get Token for delete too!
+const handleDelete = async (id: string) => {
+    if (!window.confirm("Delete this product?")) return;
+    
+    try {
+        const token = await auth.currentUser?.getIdToken();
+        
+        // FIX: Changed /api/admin/products to /api/products
+        const response = await fetch(`/api/products?id=${id}`, {
+            method: 'DELETE',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
 
-        try {
-            const response = await fetch(`/api/admin/products?id=${id}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            if (response.ok) {
-                toast.success("Removed");
-                setInventory((prev) => prev.filter((item: any) => item._id !== id));
-            }
-        } catch (error) {
-            toast.error("Delete failed");
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Delete failed");
         }
-    };
+
+        toast.success("Removed");
+        setInventory((prev) => prev.filter((item: any) => item._id !== id));
+    } catch (error: any) {
+        console.error("Delete error:", error);
+        toast.error(error.message);
+    }
+};
 
     return (
         <div className="p-4 md:p-8 space-y-12 bg-slate-50 min-h-screen pb-20">
@@ -181,16 +188,16 @@ const startEdit = (item: any) => {
                         </CardTitle>
                         {editingId && <Button variant="ghost" size="sm" className="text-white hover:bg-white/10" onClick={cancelEdit}><X size={18} /></Button>}
                     </div>
-                    
+
                     <CardContent className="p-6 space-y-6">
                         {/* Publishing & Identity */}
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase">Status</label>
-                                <select 
+                                <select
                                     className="w-full rounded-xl border-slate-200 text-sm p-2 bg-slate-50 border"
                                     value={product.status}
-                                    onChange={(e) => setProduct({...product, status: e.target.value})}
+                                    onChange={(e) => setProduct({ ...product, status: e.target.value })}
                                 >
                                     <option value="published">Published</option>
                                     <option value="draft">Scheduled</option>
@@ -198,17 +205,17 @@ const startEdit = (item: any) => {
                             </div>
                             <div className="space-y-1">
                                 <label className="text-[10px] font-bold text-slate-400 uppercase">SKU / ID</label>
-                                <Input className="rounded-xl" placeholder="MS-001" value={product.sku} onChange={(e) => setProduct({...product, sku: e.target.value})} />
+                                <Input className="rounded-xl" placeholder="MS-001" value={product.sku} onChange={(e) => setProduct({ ...product, sku: e.target.value })} />
                             </div>
                         </div>
 
                         {/* Basic Info */}
                         <div className="space-y-3">
                             <label className="text-[10px] font-bold text-blue-600 uppercase flex items-center gap-1">
-                                <Tag size={12}/> Essential Details
+                                <Tag size={12} /> Essential Details
                             </label>
                             <Input placeholder="Product Name (e.g. Jordan 1 Retro)" value={product.name} onChange={(e) => setProduct({ ...product, name: e.target.value })} />
-                            
+
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-1">
                                     <label className="text-[10px] font-medium text-slate-400">Regular Price</label>
@@ -223,18 +230,18 @@ const startEdit = (item: any) => {
 
                         {/* Variants (Sizes & Colors) */}
                         <div className="space-y-3 pt-2 border-t">
-                             <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                                <Palette size={12}/> Variants & Logistics
+                            <label className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
+                                <Palette size={12} /> Variants & Logistics
                             </label>
                             <div className="grid grid-cols-2 gap-4">
-                                <Input placeholder="Colors (Red, Blue...)" value={product.colors} onChange={(e) => setProduct({...product, colors: e.target.value})} />
-                                <Input placeholder="Sizes (42, 44, XL...)" value={product.sizes} onChange={(e) => setProduct({...product, sizes: e.target.value})} />
+                                <Input placeholder="Colors (Red, Blue...)" value={product.colors} onChange={(e) => setProduct({ ...product, colors: e.target.value })} />
+                                <Input placeholder="Sizes (42, 44, XL...)" value={product.sizes} onChange={(e) => setProduct({ ...product, sizes: e.target.value })} />
                             </div>
                             <div className="grid grid-cols-2 gap-4">
-                                <select 
+                                <select
                                     className="rounded-xl border-slate-200 text-sm p-2 bg-slate-50 border"
                                     value={product.sex}
-                                    onChange={(e) => setProduct({...product, sex: e.target.value})}
+                                    onChange={(e) => setProduct({ ...product, sex: e.target.value })}
                                 >
                                     <option value="unisex">Unisex</option>
                                     <option value="male">Male</option>
@@ -246,12 +253,12 @@ const startEdit = (item: any) => {
 
                         {/* Brand & Write up */}
                         <div className="space-y-3 pt-2 border-t">
-                            <Input placeholder="Brand (e.g. Nike, Adidas)" value={product.brand} onChange={(e) => setProduct({...product, brand: e.target.value})} />
-                            <Textarea 
-                                placeholder="The Product Story (Write up about the item...)" 
+                            <Input placeholder="Brand (e.g. Nike, Adidas)" value={product.brand} onChange={(e) => setProduct({ ...product, brand: e.target.value })} />
+                            <Textarea
+                                placeholder="The Product Story (Write up about the item...)"
                                 className="min-h-[100px] rounded-2xl resize-none"
                                 value={product.description}
-                                onChange={(e) => setProduct({...product, description: e.target.value})}
+                                onChange={(e) => setProduct({ ...product, description: e.target.value })}
                             />
                         </div>
 
@@ -330,7 +337,7 @@ const startEdit = (item: any) => {
                                             <p className="text-[10px] text-slate-400 font-medium">Qty: {item.stock}</p>
                                         </div>
                                     </TableCell>
-                                    
+
                                     <TableCell>
                                         <div className="flex flex-col gap-1">
                                             {item.status === 'draft' ? (
@@ -340,7 +347,7 @@ const startEdit = (item: any) => {
                                             )}
                                             {item.discountPrice && (
                                                 <span className="w-fit px-2 py-0.5 rounded text-[9px] font-black bg-blue-600 text-white uppercase flex items-center gap-1">
-                                                    <Percent size={8}/> Sale
+                                                    <Percent size={8} /> Sale
                                                 </span>
                                             )}
                                         </div>
