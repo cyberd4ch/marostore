@@ -8,7 +8,7 @@ import { setCartItems } from './cart.action';
 export function* syncCartOnLogin() {
     try {
         const currentUser = yield* select(selectCurrentUser);
-        if (!currentUser || !currentUser.id) return;
+        if (!currentUser || !currentUser.uid) return;
         const localCartItems = yield* select(selectCartItems);
 
         if (currentUser && localCartItems.length > 0) {
@@ -17,7 +17,7 @@ export function* syncCartOnLogin() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ 
-                    userId: currentUser.id, 
+                    userId: currentUser.uid, 
                     items: localCartItems 
                 }),
             });
@@ -28,7 +28,7 @@ export function* syncCartOnLogin() {
             yield* put(setCartItems(mergedCart.items));
         } else if (currentUser) {
             // If local cart is empty, fetch the user's existing cart from DB
-            const response = yield* call(fetch, `/api/cart?userId=${currentUser.id}`);
+            const response = yield* call(fetch, `/api/cart?userId=${currentUser.uid}`);
             const userCart = yield* call([response, response.json]);
             yield* put(setCartItems(userCart.items || []));
         }
