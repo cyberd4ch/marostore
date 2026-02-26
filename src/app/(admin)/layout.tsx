@@ -1,59 +1,44 @@
-'use client';
+// app/(admin)/layout.tsx
+import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
+import { adminAuth, verifyAdminStatus } from '@/lib/firebaseAdmin'; // Your existing lib path
+import AdminSidebar from '@/components/AdminSidebar'; // We'll move the UI here
 
-import { usePathname } from 'next/navigation';
-import Link from 'next/link';
-import { UserCircleIcon, LayoutDashboard, ShoppingBag, ListOrdered, Home } from 'lucide-react';
-import AdminGuard from "@/components/AdminGuard";
+export default async function AdminLayout({
+    children,
+}: {
+    children: React.ReactNode;
+}) {
+    const cookieStore = await cookies();
+    const sessionCookie = cookieStore.get('__session')?.value;
 
-// Ensure these match your folder paths exactly
-const sidebarLinks = [
-    { name: 'Analytics', href: '/dashboard', icon: LayoutDashboard },
-    { name: 'Products', href: '/dashboard/products', icon: ShoppingBag },
-    { name: 'Orders', href: '/dashboard/orders', icon: ListOrdered },
-    { name: 'Users', href: '/dashboard/users', icon: UserCircleIcon },
-];
+    // 1. Hard check: No cookie? No entry.
+    if (!sessionCookie) {
+        redirect('/auth?from=/dashboard');
+    }
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
-    const pathname = usePathname();
+    try {
+        // 2. Verify the JWT and Custom Claims on the Server
 
-    return (
-        <AdminGuard>
+
+        const isAdmin = await verifyAdminStatus(sessionCookie);
+        if (!isAdmin) redirect('/unauthorized');
+
+        // 4. Authorized: Render the UI
+        return (
             <div className="flex min-h-screen bg-slate-50">
-                {/* Sidebar */}
-                <aside className="w-64 bg-white border-r border-slate-200 hidden md:flex flex-col p-6 sticky top-0 h-screen">
-                    <div className="mb-10 px-2">
-                        <h2 className="text-2xl font-black tracking-tighter text-black">MARO ADMIN</h2>
-                    </div>
-                    
-                    <nav className="flex-1 space-y-2">
-                        {sidebarLinks.map((link) => {
-                            const Icon = link.icon;
-                            const isActive = pathname === link.href;
-                            return (
-                                <Link 
-                                    key={link.href} 
-                                    href={link.href}
-                                    className={`flex items-center gap-3 px-4 py-3 rounded-xl font-bold transition-all ${
-                                        isActive ? 'bg-black text-white shadow-lg' : 'text-slate-500 hover:bg-slate-100'
-                                    }`}
-                                >
-                                    <Icon size={20} />
-                                    {link.name}
-                                </Link>
-                            );
-                        })}
-                    </nav>
-
-                    <Link href="/" className="flex items-center gap-3 px-4 py-3 text-slate-400 font-medium hover:text-black transition-colors border-t mt-auto">
-                        <Home size={20} /> Back to Store
-                    </Link>
-                </aside>
+                {/* We move your sidebar UI to a separate Client Component */}
+                <AdminSidebar />
 
                 {/* Main Content */}
                 <main className="flex-1 overflow-y-auto">
                     {children}
                 </main>
             </div>
-        </AdminGuard>
-    );
+        );
+
+    } catch (error) {
+        console.error("Admin verification failed:", error);
+        redirect('/auth');
+    }
 }

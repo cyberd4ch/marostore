@@ -36,7 +36,19 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
 
-    const signOutUser = () => dispatch(signOutStart());
+    const signOutUser = () => {
+        // 1. Manually expire the cookies immediately
+        // We set the date to the beginning of time (1970) so the browser deletes them
+        document.cookie = "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
+        document.cookie = "onboardingCompleted=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
+
+        // 2. Trigger the Redux Saga for Firebase Sign Out
+        dispatch(signOutStart());
+
+        // 3. Force a redirect to the auth page (or home)
+        // This ensures the Middleware runs immediately on the new destination
+        router.replace('/auth');
+    };
 
     useEffect(() => {
         // Only trigger if user is on Login or Signup page

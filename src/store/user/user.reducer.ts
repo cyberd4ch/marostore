@@ -13,8 +13,8 @@ import {
 
 
 export type UserState = {
-readonly currentUser: UserData | null;
-readonly guestEmail: string | null;
+    readonly currentUser: UserData | null;
+    readonly guestEmail: string | null;
     readonly isLoading: boolean;
     readonly error: Error | null;
 };
@@ -28,9 +28,10 @@ const INITIAL_STATE: UserState = {
 
 export const userReducer = (state = INITIAL_STATE, action: AnyAction): UserState => {
     if (signInSuccess.match(action)) {
-        return { 
-            ...state, 
-            currentUser: action.payload as UserData 
+        return {
+            ...state,
+            currentUser: action.payload as UserData,
+            error: null // Clear previous errors on success
         };
     }
 
@@ -40,7 +41,8 @@ export const userReducer = (state = INITIAL_STATE, action: AnyAction): UserState
     }
 
     if (signOutSuccess.match(action)) {
-        return { ...state, currentUser: null, guestEmail: null }; // Optional: clear guest email on sign out
+        // Reset everything to initial state to ensure a clean slate
+        return { ...INITIAL_STATE };
     }
 
     if (
