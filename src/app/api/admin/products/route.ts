@@ -12,7 +12,20 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 
+import { adminAuth, adminDb } from '@/lib/firebase-admin';
+
 import { revalidatePath } from 'next/cache';
+
+async function verifyAdmin(req: Request) {
+    const token = req.headers.get('Authorization')?.split('Bearer ')[1];
+    if (!token) return null;
+    try {
+        const decoded = await adminAuth.verifyIdToken(token);
+        return decoded.admin ? decoded : null;
+    } catch {
+        return null;
+    }
+}
 
 export async function GET() {
     try {
