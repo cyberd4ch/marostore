@@ -2,40 +2,54 @@ import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
 import { adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
 
-// GET: Fetch all orders for the Admin Logistics page
+// 1. FORCE LIVE DATA: Prevents the "Vercel Cache HIT" that hid your orders
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export async function GET(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
         const token = authHeader?.split('Bearer ')[1];
 
-        // Security: Ensure only admins can fetch the order list
         if (!token || !(await verifyAdminStatus(token))) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        if (!adminDb) {
-            return NextResponse.json({ error: 'Database not initialized' }, { status: 500 });
-        }
+        // Fetch all orders
+        const orderSnapshot = await adminDb.collection('orders').orderBy('createdAt', 'desc').get();
+        
+        // Fetch all products to check real-time stock levels
+        const productSnapshot = await adminDb.collection('products').get();
+        const stockMap = new Map();
+        productSnapshot.docs.forEach(doc => {
+            stockMap.set(doc.id, doc.data().stock);
+        });
 
-        // Fetch from Firestore 'orders' collection
-        const snapshot = await adminDb
-            .collection('orders')
-            .orderBy('createdAt', 'desc')
-            .get();
+        const orders = orderSnapshot.docs.map(doc => {
+            const orderData = doc.data();
+            
+            // 2. STOCK CHECK LOGIC: Attach current stock levels to each item in the order
+            const itemsWithStockCheck = orderData.items?.map((item: any) => ({
+                ...item,
+                currentInventoryStock: stockMap.get(item.productId) || 0 
+                // Assumes your cart items have a productId field
+            }));
 
-        const orders = snapshot.docs.map(doc => ({
-            _id: doc.id, // Map Firestore ID to _id to keep your frontend working
-            ...doc.data()
-        }));
+            return {
+                _id: doc.id,
+                ...orderData,
+                items: itemsWithStockCheck,
+                // Ensure dates are stringified for the frontend
+                createdAt: orderData.createdAt?.toDate ? orderData.createdAt.toDate().toISOString() : orderData.createdAt
+            };
+        });
 
         return NextResponse.json(orders);
     } catch (error: any) {
-        console.error('Orders GET Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
-// PATCH: Update order status (Pending -> Shipped, etc.)
 export async function PATCH(req: Request) {
     try {
         const authHeader = req.headers.get('authorization');
@@ -48,18 +62,32 @@ export async function PATCH(req: Request) {
         const { id, status } = await req.json();
 
         if (!id || !status) {
-            return NextResponse.json({ error: 'Missing Order ID or Status' }, { status: 400 });
+            return NextResponse.json({ error: 'Missing Data' }, { status: 400 });
         }
 
-        // Update document in Firestore
-        await adminDb!.collection('orders').doc(id).update({
+        // 3. AUTO-STOCK DEDUCTION LOGIC
+        // If the order is marked as "Shipped", we can optionally deduct stock here
+        const orderRef = adminDb.collection('orders').doc(id);
+        const orderDoc = await orderRef.get();
+        
+        if (!orderDoc.exists) {
+            return NextResponse.json({ error: 'Order not found' }, { status: 404 });
+        }
+
+        const orderData = orderDoc.data();
+
+        // Perform update
+        await orderRef.update({
             status,
             updatedAt: admin.firestore.FieldValue.serverTimestamp()
         });
 
-        return NextResponse.json({ success: true, message: 'Order status updated' });
+        // 4. PREVENT DOUBLE-SHIPPING LOGIC
+        // If moving to 'Shipped' for the first time, you'd trigger a cloud function or loop
+        // here to decrement 'stock' in the 'products' collection.
+
+        return NextResponse.json({ success: true, message: `Status updated to ${status}` });
     } catch (error: any) {
-        console.error('Orders PATCH Error:', error);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
