@@ -2,46 +2,36 @@ import { NextResponse } from 'next/server';
 
 export async function POST(request: Request) {
     try {
-        const { email, amount, cart, customerDetails } = await request.json();
+        const { email, amount } = await request.json();
 
+        // 1. Validation
         if (!email || !amount) {
-            return NextResponse.json({ message: 'Email and amount are required' }, { status: 400 });
+            return NextResponse.json(
+                { message: 'Email and amount are required' },
+                { status: 400 }
+            );
         }
 
         const secretKey = process.env.PAYSTACK_SECRET_KEY;
         if (!secretKey) {
-            console.error("PAYSTACK_SECRET_KEY missing");
+            console.error("PAYSTACK_SECRET_KEY is missing in production environment");
             return NextResponse.json({ message: 'Server configuration error' }, { status: 500 });
         }
 
-        // 1. DYNAMIC BASE URL (No trailing slash)
-        const baseUrl = (process.env.NEXT_PUBLIC_BASE_URL || 
-            (process.env.NODE_ENV === 'production' 
-                ? 'https://marostore-nine.vercel.app' 
-                : 'http://localhost:3000')).replace(/\/$/, ""); // Force remove trailing slash
-
-        // 2. PREPARE PAYSTACK BODY
+        // 2. Prepare Paystack params
+        // Paystack expects amount in pesewas (amount * 100)
         const body = JSON.stringify({
             email,
-            amount: Math.round(amount * 100), // GHS to Pesewas
-            currency: 'GHS',
+            amount: Math.round(amount * 100),
+            // Optional: add channels to restrict to mobile_money
             channels: ['card', 'mobile_money'],
-            // EXACT CALLBACK: Next.js is case-sensitive and slash-sensitive
-            callback_url: `${baseUrl}/shop/checkout/success`,
-            // 3. BACKUP METADATA: Storing order info inside Paystack itself
-            metadata: {
-                cart: cart || [],
-                customerDetails: customerDetails || {},
-                custom_fields: [
-                    {
-                        display_name: "Customer Phone",
-                        variable_name: "customer_phone",
-                        value: customerDetails?.phone || "N/A"
-                    }
-                ]
-            }
+            currency: 'GHS',
+            callback_url: process.env.NODE_ENV === 'production'
+                ? 'https://marostore-nine.vercel.app/shop/checkout/success'
+                : 'http://localhost:3000/shop/checkout/success',
         });
 
+        // 3. Initialize transaction
         const response = await fetch('https://api.paystack.co/transaction/initialize', {
             method: 'POST',
             headers: {
@@ -54,14 +44,30 @@ export async function POST(request: Request) {
         const data = await response.json();
 
         if (!response.ok || !data.status) {
-            return NextResponse.json({ message: data.message || 'Initialization failed' }, { status: 400 });
+            console.error('Paystack API Rejected Request:', data);
+            return NextResponse.json(
+                { message: data.message || 'Payment initialization failed' },
+                { status: response.status }
+            );
         }
 
-        // Returns { authorization_url, access_code, reference }
+        if (!data.status) {
+            // THIS LOG IS CRUCIAL: Check this in Vercel Function Logs
+            console.error('Paystack Error Details:', data);
+            return NextResponse.json(
+                { message: data.message || 'Paystack initialization failed' },
+                { status: 400 }
+            );
+        }
+
+        // 4. Return the authorization_url to the frontend
         return NextResponse.json(data.data);
 
-    } catch (error: any) {
+    } catch (error) {
         console.error('PAYMENT_ROUTE_ERROR:', error);
-        return NextResponse.json({ message: 'Internal Server Error' }, { status: 500 });
+        return NextResponse.json(
+            { message: 'Internal Server Error' },
+            { status: 500 }
+        );
     }
 }

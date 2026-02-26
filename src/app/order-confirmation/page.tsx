@@ -1,96 +1,58 @@
 'use client';
 
 import { useCallback, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import { toast } from 'sonner';
 import {
-    ShieldCheck, Lock, ArrowLeft, Phone,
-    Wallet, CheckCircle2, Info
+    CreditCard, ChevronRight, MapPin,
+    User, ShieldCheck, Lock, ArrowLeft
 } from "lucide-react";
 
 import { selectCartItems } from '../../store/cart/cart.selector';
-import { Badge } from "@/components/ui/badge";
+import { CartItem as TCartItem } from '../../store/cart/cart.types';
+
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+    Accordion,
+    AccordionContent,
+    AccordionItem,
+    AccordionTrigger
+} from "@/components/ui/accordion";
 
-import { Mail } from "lucide-react"; // Add Mail icon
-import { setGuestEmail } from '../../store/user/user.action'; // Use your action creator
-
-
-
-
-
-import { selectCurrentUser, selectGuestEmail } from '../../store/user/user.selector';
-import { error } from 'console';
-
-const PaymentPage = () => {
+export default function CheckoutPage() {
     const cartItems = useSelector(selectCartItems);
-    const formData = useSelector(state => ({
-        email: selectGuestEmail(state),
-        items: selectCartItems(state)
-    }));
-    const currentUser = useSelector(selectCurrentUser);
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
-    const [momoNumber, setMomoNumber] = useState('');
 
-const guestEmail = useSelector(selectGuestEmail);
-const dispatch = useDispatch();
-
-const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({ 
-    type: 'user/SET_GUEST_EMAIL', 
-    payload: e.target.value 
-});
-
+    // Pricing Logic from your Redux store reference
     const cartTotal = cartItems.reduce((total, item) => total + item.quantity * item.price, 0);
-    const shippingCost = cartTotal > 200 ? 0 : 20;
-    const totalPayable = cartTotal + shippingCost;
+    const shippingCost = cartTotal > 200 ? 0 : 20.00;
+    const discount = 9.00; // Example static discount
+    const totalPayable = cartTotal + shippingCost - discount;
 
-    const handlePayment = async () => {
-    if (cartItems.length === 0) return toast.error("Your cart is empty!");
-    
-    setIsProcessing(true);
-
-    try {
-        // 1. SAVE TO LOCAL STORAGE (Emergency Backup)
-        localStorage.setItem('cart', JSON.stringify(cartItems));
-        localStorage.setItem('pendingCheckout', JSON.stringify(formData));
-
-        // 2. CALL INITIALIZE API
-        const response = await fetch('/api/payment', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                email: guestEmail,
-                amount: totalPayable, // e.g., 250
-                cart: cartItems, // Backup for the verify route
-                customerDetails: { phone: momoNumber } // Backup for the verify route
-            }),
-        });
-
-        const data = await response.json();
-
-        // 3. REDIRECT TO PAYSTACK
-        if (data.authorization_url) {
-            // Paystack will create the 'reference' now and 
-            // send it back to your /success page later.
-            window.location.href = data.authorization_url;
-        } else {
-            throw new Error(data.message || "Could not start transaction");
+    const handlePlaceOrder = useCallback(async () => {
+        setIsProcessing(true);
+        try {
+            // Your payment gateway logic here
+            toast.success("Order placed successfully!");
+            router.push('/order-confirmation');
+        } catch (error) {
+            toast.error("Payment failed. Please try again.");
+        } finally {
+            setIsProcessing(false);
         }
-    } catch (error: any) {
-        toast.error(error.message);
-        setIsProcessing(false);
-    }
-};
+    }, [router]);
 
     return (
         <div className="min-h-screen bg-slate-50/50 py-12">
-            <div className="container mx-auto max-w-6xl px-6">
-                <div className="mb-10 flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="container mx-auto max-w-7xl px-6">
+                {/* Header with Navigation Back */}
+                <div className="mb-8 flex items-center justify-between">
                     <div>
                         <Button
                             variant="ghost"
@@ -98,143 +60,160 @@ const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({
                             className="mb-2 -ml-4 text-slate-500 hover:text-slate-900"
                         >
                             <ArrowLeft className="mr-2 h-4 w-4" />
-                            Back to Shipping
+                            Back to Cart
                         </Button>
-                        <h1 className="text-3xl font-bold tracking-tight text-slate-900">Finalize Payment</h1>
+                        <h1 className="text-4xl font-bold tracking-tight text-slate-900">Checkout</h1>
                     </div>
-                    <Badge variant="secondary" className="w-fit h-8 px-4 rounded-full bg-green-50 text-green-700 border-green-100 flex gap-2">
-                        <Lock className="h-3.5 w-3.5" />
-                        SECURE PAYSTACK GATEWAY
-                    </Badge>
+                    <div className="hidden items-center gap-2 text-sm font-medium text-slate-500 md:flex">
+                        <Lock className="h-4 w-4 text-green-500" />
+                        Secure Checkout
+                    </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-8 lg:grid-cols-[1fr_400px]">
+                <div className="grid grid-cols-1 gap-12 lg:grid-cols-[1fr_450px]">
+                    {/* LEFT COLUMN: FORMS */}
                     <div className="space-y-6">
-                        {!currentUser && (
-                            <Card className="rounded-[2.5rem] border-none bg-white shadow-sm overflow-hidden">
-                                <CardHeader className="bg-slate-100 p-8">
-                                    <CardTitle className="text-xl flex items-center gap-2 text-slate-900">
-                                        <Mail className="h-5 w-5" />
-                                        Contact Information
-                                    </CardTitle>
-                                    <p className="text-slate-500 text-sm">Where should we send your digital receipt?</p>
-                                </CardHeader>
-                                <CardContent className="p-8">
-                                    <div className="space-y-3">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Email Address</label>
-                                        <div className="relative">
-                                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                                            <Input
-                                                type="email"
-                                                value={guestEmail || ''}
-                                                onChange={onEmailChange}
-                                                placeholder="alex@example.com"
-                                                className="h-14 pl-12 rounded-2xl border-slate-200 focus:ring-slate-900 focus:border-slate-900 text-lg"
-                                            />
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        )}
-                        <Card className="rounded-[2.5rem] border-none bg-white shadow-sm overflow-hidden">
-                            <CardHeader className="bg-slate-900 text-white p-8">
-                                <CardTitle className="text-xl flex items-center gap-2">
-                                    <Wallet className="h-5 w-5" />
-                                    Select Payment Method
-                                </CardTitle>
-                                <p className="text-slate-400 text-sm">Securely processed by Paystack</p>
+                        {/* Coupon Code Section */}
+                        <Card className="rounded-[2rem] border-none bg-white shadow-sm">
+                            <CardHeader className="px-8 pt-8">
+                                <CardTitle className="text-xl">Coupon Code</CardTitle>
+                                <p className="text-sm text-slate-500">Enter code to get discount instantly</p>
                             </CardHeader>
-
-                            <CardContent className="p-8 space-y-8">
-                                <div className="relative group cursor-pointer rounded-3xl border-2 border-yellow-400 bg-yellow-50/30 p-6 transition-all shadow-md">
-                                    <div className="absolute top-4 right-6">
-                                        <CheckCircle2 className="h-6 w-6 text-yellow-600" />
-                                    </div>
-                                    <div className="flex items-center gap-4 mb-4">
-                                        <div className="h-12 w-12 rounded-xl bg-yellow-400 flex items-center justify-center font-bold text-slate-900 shadow-inner">
-                                            MTN
-                                        </div>
-                                        <div>
-                                            <h3 className="font-bold text-lg text-slate-900">MTN Mobile Money</h3>
-                                            <p className="text-sm text-yellow-700">Instant MoMo Push Request</p>
-                                        </div>
-                                    </div>
-
-                                    <div className="space-y-3">
-                                        <label className="text-xs font-bold uppercase tracking-wider text-slate-500">Momo Number</label>
-                                        <div className="relative">
-                                            <Phone className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-slate-400" />
-                                            <Input
-                                                value={momoNumber}
-                                                onChange={(e) => setMomoNumber(e.target.value)}
-                                                placeholder="024 XXX XXXX"
-                                                className="h-14 pl-12 rounded-2xl border-slate-200 focus:ring-yellow-400 focus:border-yellow-400 text-lg"
-                                            />
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className="flex items-start gap-3 p-4 rounded-2xl bg-blue-50 border border-blue-100">
-                                    <Info className="h-5 w-5 text-blue-500 shrink-0 mt-0.5" />
-                                    <p className="text-sm text-blue-700 leading-relaxed">
-                                        You will be redirected to the secure <strong>Paystack</strong> portal.
-                                        Ensure your phone is nearby to approve the <strong>MTN Mobile Money</strong> prompt.
-                                    </p>
-                                </div>
+                            <CardContent className="flex gap-3 px-8 pb-8 pt-4">
+                                <Input
+                                    placeholder="Add discount code"
+                                    className="h-12 rounded-xl border-slate-200 bg-slate-50/50"
+                                />
+                                <Button className="h-12 rounded-xl bg-[#141414] px-8 font-bold text-white">
+                                    Apply
+                                </Button>
                             </CardContent>
                         </Card>
 
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-100 text-slate-600 font-medium text-sm">
-                                <ShieldCheck className="h-5 w-5 text-green-500" />
-                                Encrypted SSL
-                            </div>
-                            <div className="flex items-center gap-3 p-4 rounded-2xl bg-white border border-slate-100 text-slate-600 font-medium text-sm">
-                                <ShieldCheck className="h-5 w-5 text-green-500" />
-                                Fraud Protection
-                            </div>
-                        </div>
+                        {/* Accordion for Personal, Shipping, and Payment Details */}
+                        <Accordion type="single" defaultValue="personal" className="space-y-4">
+                            <AccordionItem value="personal" className="rounded-[2rem] border-none bg-white px-8 shadow-sm">
+                                <AccordionTrigger className="py-6 hover:no-underline">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                                            <User className="h-5 w-5 text-slate-600" />
+                                        </div>
+                                        <span className="text-lg font-bold">Your Personal Details</span>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-8 pt-4">
+                                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold">First Name</label>
+                                            <Input placeholder="Enter first name" className="h-12 rounded-xl" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold">Last Name</label>
+                                            <Input placeholder="Enter last name" className="h-12 rounded-xl" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold">Email Address</label>
+                                            <Input placeholder="Email address" className="h-12 rounded-xl" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold">Phone Number</label>
+                                            <Input placeholder="Phone number" className="h-12 rounded-xl" />
+                                        </div>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+
+                            <AccordionItem value="shipping" className="rounded-[2rem] border-none bg-white px-8 shadow-sm">
+                                <AccordionTrigger className="py-6 hover:no-underline">
+                                    <div className="flex items-center gap-3">
+                                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-100">
+                                            <MapPin className="h-5 w-5 text-slate-600" />
+                                        </div>
+                                        <span className="text-lg font-bold">Shipping Address</span>
+                                    </div>
+                                </AccordionTrigger>
+                                <AccordionContent className="pb-8 pt-4">
+                                    <div className="space-y-4">
+                                        <div className="space-y-2">
+                                            <label className="text-sm font-bold">Mailing Address</label>
+                                            <Input placeholder="Mailing Address" className="h-12 rounded-xl" />
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <Input placeholder="City" className="h-12 rounded-xl" />
+                                            <Input placeholder="Post Code" className="h-12 rounded-xl" />
+                                        </div>
+                                    </div>
+                                </AccordionContent>
+                            </AccordionItem>
+                        </Accordion>
                     </div>
 
+                    {/* RIGHT COLUMN: ORDER SUMMARY */}
                     <div className="lg:sticky lg:top-8">
                         <Card className="rounded-[2.5rem] border-none bg-white p-2 shadow-2xl">
                             <CardHeader className="px-8 pt-8">
-                                <CardTitle className="text-2xl font-bold text-slate-900">Total Payable</CardTitle>
-                                <p className="text-slate-500">Incl. shipping and service fees</p>
+                                <CardTitle className="text-2xl font-bold text-slate-900">Order Summary</CardTitle>
+                                <p className="text-slate-500">You have {cartItems.length} items in your cart</p>
                             </CardHeader>
 
                             <CardContent className="px-8 pt-4">
-                                <div className="space-y-4">
-                                    <div className="flex justify-between text-slate-600 font-medium">
-                                        <span>Order Subtotal</span>
-                                        <span>₵{cartTotal.toFixed(2)}</span>
+                                {/* Item List */}
+                                <div className="max-h-[300px] space-y-4 overflow-y-auto pr-2 custom-scrollbar">
+                                    {cartItems.map((item) => (
+                                        <div key={item.id} className="flex items-center gap-4">
+                                            <div className="h-16 w-16 overflow-hidden rounded-xl bg-slate-100 p-2">
+                                                <Image
+                                                    src={item.imageUrl}
+                                                    alt={item.name}
+                                                    width={64}
+                                                    height={64}
+                                                    className="object-contain"
+                                                />
+                                            </div>
+                                            <div className="flex-1">
+                                                <h4 className="text-sm font-bold text-slate-900">{item.name}</h4>
+                                                <p className="text-xs text-slate-500">Qty: {item.quantity}</p>
+                                            </div>
+                                            <span className="text-sm font-bold">₵{item.price}</span>
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <Separator className="my-6 bg-slate-100" />
+
+                                {/* Financials */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Subtotal</span>
+                                        <span className="font-bold text-slate-900">₵{cartTotal.toFixed(2)}</span>
                                     </div>
-                                    <div className="flex justify-between text-slate-600 font-medium">
-                                        <span>Standard Shipping</span>
-                                        <span>₵{shippingCost.toFixed(2)}</span>
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Shipping Cost (+)</span>
+                                        <span className="font-bold text-slate-900">₵{shippingCost.toFixed(2)}</span>
+                                    </div>
+                                    <div className="flex justify-between text-slate-600">
+                                        <span>Discount (-)</span>
+                                        <span className="font-bold text-red-500">₵{discount.toFixed(2)}</span>
                                     </div>
                                     <Separator className="bg-slate-100" />
-                                    <div className="flex justify-between text-3xl font-black text-slate-900 pt-2">
-                                        <span>Total</span>
+                                    <div className="flex justify-between text-2xl font-bold text-slate-900 pt-2">
+                                        <span>Total Payable</span>
                                         <span>₵{totalPayable.toFixed(2)}</span>
                                     </div>
                                 </div>
                             </CardContent>
 
-                            <CardFooter className="flex flex-col gap-4 px-8 pb-10 pt-8">
+                            <CardFooter className="flex flex-col gap-4 px-8 pb-10 pt-6">
                                 <Button
-                                    onClick={handlePayment}
+                                    onClick={handlePlaceOrder}
                                     disabled={isProcessing || cartItems.length === 0}
-                                    className="h-16 w-full rounded-2xl bg-yellow-400 text-slate-900 hover:bg-yellow-500 text-xl font-black shadow-lg shadow-yellow-200 transition-all active:scale-[0.98]"
+                                    className="h-16 w-full rounded-2xl bg-[#141414] text-xl font-bold text-white hover:bg-black"
                                 >
-                                    {isProcessing ? "Redirecting to Paystack..." : "Pay with MTN Momo"}
+                                    {isProcessing ? "Processing..." : "Place Order"}
                                 </Button>
-                                <div className="flex flex-col items-center gap-2">
-                                    <p className="text-xs text-slate-400 font-medium">Securely processed by</p>
-                                    <div className="flex items-center gap-1 opacity-50 grayscale hover:grayscale-0 transition-all">
-                                        <span className="text-lg font-bold tracking-tighter text-slate-900">paystack</span>
-                                    </div>
-                                </div>
+                                <p className="text-center text-xs text-slate-400">
+                                    By placing your order, you agree to our company <span className="font-bold underline">Privacy Policy</span> and <span className="font-bold underline">Conditions of use</span>.
+                                </p>
                             </CardFooter>
                         </Card>
                     </div>
@@ -242,6 +221,4 @@ const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({
             </div>
         </div>
     );
-};
-
-export default PaymentPage;
+}
