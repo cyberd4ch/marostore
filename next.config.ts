@@ -2,6 +2,7 @@
 const nextConfig = {
   // Add allowedDevOrigins at the top level
   allowedDevOrigins: ['192.168.0.134'],
+  trailingSlash: false,
 
   images: {
     remotePatterns: [
