@@ -19,28 +19,52 @@ function SuccessContent() {
     const hasVerified = useRef(false);
 
     useEffect(() => {
-        if (!reference) {
-            setStatus('error');
-            setErrorMessage("No transaction reference found.");
-            return;
+        // 1. IMPROVED REFERENCE GRABBER (Ironclad Fallback)
+        const getRef = () => {
+            // Try Next.js searchParams first
+            if (reference) return reference;
+            
+            // Fallback: Manual Parse (Works if Next.js hasn't hydrated yet)
+            if (typeof window !== 'undefined') {
+                const params = new URLSearchParams(window.location.search);
+                return params.get('reference') || params.get('trxref');
+            }
+            return null;
+        };
+
+        const activeRef = getRef();
+
+        if (!activeRef) {
+            // If still no ref, wait 1.5s and try one last time before erroring
+            const timeout = setTimeout(() => {
+                const retryRef = getRef();
+                if (!retryRef) {
+                    setStatus('error');
+                    setErrorMessage("We couldn't find your transaction reference. If you were charged, please contact support with your mobile money receipt.");
+                } else {
+                    // If retry finds it, trigger the verification
+                    verifyTransaction(retryRef);
+                }
+            }, 1500);
+            return () => clearTimeout(timeout);
         }
 
         if (hasVerified.current) return;
-        hasVerified.current = true;
-
-        const verifyTransaction = async () => {
+        
+        // Internal helper to keep useEffect clean
+        const verifyTransaction = async (refToVerify: string) => {
+            hasVerified.current = true;
             try {
-                // 1. PULL TEMPORARY DATA FROM LOCAL STORAGE
-                // You must save this in your cart page right before redirecting to Paystack
+                // 2. PULL DATA FROM LOCAL STORAGE
                 const savedCheckoutData = JSON.parse(localStorage.getItem('pendingCheckout') || '{}');
                 const savedCart = JSON.parse(localStorage.getItem('cart') || '[]');
 
-                // 2. FIRE TO THE BACKEND
+                // 3. FIRE TO BACKEND
                 const response = await fetch('/api/orders/verify', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        reference,
+                        reference: refToVerify, 
                         items: savedCart,
                         customerEmail: savedCheckoutData.email,
                         customerName: savedCheckoutData.name,
@@ -55,24 +79,20 @@ function SuccessContent() {
                     setOrderData(data.data);
                     setStatus('success');
                     
-                    // 3. ANNIHILATE THE CART (Ironclad cleanup)
+                    // 4. CLEANUP
                     localStorage.removeItem('cart');
                     localStorage.removeItem('pendingCheckout');
-                    
-                    // Note: If you use a global state manager like Zustand or Context, 
-                    // you should also trigger your clearCart() function here.
-                    
                 } else {
                     setStatus('error');
                     setErrorMessage(data.message || "Verification failed");
                 }
             } catch (error) {
                 setStatus('error');
-                setErrorMessage("Network error during verification. Don't worry, if you were charged, your order is secure in our system.");
+                setErrorMessage("Connection issue. Your payment was likely successful, but we couldn't sync the receipt. Refresh the page to try again.");
             }
         };
 
-        verifyTransaction();
+        verifyTransaction(activeRef);
     }, [reference]);
 
     if (status === 'loading') {
@@ -90,8 +110,8 @@ function SuccessContent() {
             <div className="min-h-[70vh] flex flex-col items-center justify-center p-4">
                 <XCircle className="w-20 h-20 text-rose-500 mb-6" />
                 <h2 className="text-3xl font-black uppercase tracking-tighter mb-2">Something went wrong</h2>
-                <p className="text-slate-500 mb-8 max-w-md text-center">{errorMessage}</p>
-                <Button onClick={() => router.push('/shop')} className="rounded-full font-bold">
+                <p className="text-slate-500 mb-8 max-w-md text-center font-medium leading-relaxed">{errorMessage}</p>
+                <Button onClick={() => router.push('/shop')} className="rounded-full font-bold px-8 h-12">
                     Return to Shop
                 </Button>
             </div>
@@ -117,7 +137,6 @@ function SuccessContent() {
 
                 {/* Digital Receipt */}
                 <Card className="rounded-[2.5rem] border-none shadow-xl overflow-hidden bg-white relative">
-                    {/* Decorative Receipt Edge */}
                     <div className="absolute top-0 left-0 w-full h-4 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMCIgaGVpZ2h0PSIxMCI+PHBvbHlnb24gcG9pbnRzPSIwLDAgNSwxMCAxMCwwIiBmaWxsPSIjZjhmYWZjIiAvPjwvc3ZnPg==')] bg-repeat-x z-10"></div>
                     
                     <CardHeader className="bg-slate-900 text-white p-8 pt-12">
@@ -127,40 +146,36 @@ function SuccessContent() {
                                     <Receipt className="text-blue-400" />
                                     MARO STORE
                                 </CardTitle>
-                                <p className="text-slate-400 text-xs font-mono mt-2">REF: {reference}</p>
+                                <p className="text-slate-400 text-[10px] font-mono mt-2 uppercase tracking-widest">
+                                    REF: {orderData?.orderReference || reference}
+                                </p>
                             </div>
                             <div className="text-right">
-                                <p className="text-xs text-slate-400 font-bold uppercase mb-1">Amount Paid</p>
+                                <p className="text-[10px] text-slate-400 font-bold uppercase mb-1">Total Paid</p>
                                 <p className="text-2xl font-black text-emerald-400">₵{orderData?.totalAmount?.toLocaleString()}</p>
                             </div>
                         </div>
                     </CardHeader>
                     
                     <CardContent className="p-8 space-y-8">
-                        {/* Items */}
                         <div className="space-y-4">
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest border-b pb-2">Order Summary</h3>
-                            {orderData?.items?.length > 0 ? (
-                                orderData.items.map((item: any, idx: number) => (
-                                    <div key={idx} className="flex justify-between items-center font-medium">
-                                        <div className="flex items-center gap-3">
-                                            <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-black">x{item.quantity}</span>
-                                            <span className="uppercase text-sm">{item.name}</span>
-                                        </div>
-                                        <span>₵{(item.price * item.quantity).toLocaleString()}</span>
+                            {orderData?.items?.map((item: any, idx: number) => (
+                                <div key={idx} className="flex justify-between items-center font-medium">
+                                    <div className="flex items-center gap-3">
+                                        <span className="bg-slate-100 text-slate-600 text-[10px] px-2 py-1 rounded-md font-black">x{item.quantity}</span>
+                                        <span className="uppercase text-sm">{item.name}</span>
                                     </div>
-                                ))
-                            ) : (
-                                <p className="text-sm text-slate-500 italic">Items secured. Awaiting fulfillment sync.</p>
-                            )}
+                                    <span className="text-slate-900 font-bold">₵{(item.price * item.quantity).toLocaleString()}</span>
+                                </div>
+                            ))}
                         </div>
 
-                        {/* Delivery */}
                         <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100">
                             <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-3">Delivery Details</h3>
                             <p className="font-bold text-slate-900">{orderData?.customerName}</p>
                             <p className="text-sm text-slate-600 mt-1">{orderData?.shippingAddress}</p>
-                            <p className="text-sm text-slate-600 mt-1">{orderData?.customerPhone}</p>
+                            <p className="text-sm text-slate-600 mt-1 font-mono">{orderData?.customerPhone}</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -175,10 +190,14 @@ function SuccessContent() {
     );
 }
 
-// Next.js 14 requires useSearchParams to be wrapped in a Suspense boundary
 export default function SuccessPage() {
     return (
-        <Suspense fallback={<div className="min-h-screen flex justify-center items-center"><Loader2 className="animate-spin text-blue-600" /></div>}>
+        <Suspense fallback={
+            <div className="min-h-screen flex flex-col justify-center items-center gap-4">
+                <Loader2 className="animate-spin text-blue-600 w-10 h-10" />
+                <p className="font-black italic uppercase tracking-tighter animate-pulse">Initializing...</p>
+            </div>
+        }>
             <SuccessContent />
         </Suspense>
     );
