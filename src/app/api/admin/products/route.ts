@@ -1,23 +1,25 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/app/utils/firebase/firebase.utils';
-import { 
-    collection, 
-    getDocs, 
-    addDoc, 
-    updateDoc, 
-    deleteDoc, 
-    doc, 
-    query, 
-    orderBy, 
-    serverTimestamp 
+import {
+    collection,
+    getDocs,
+    addDoc,
+    updateDoc,
+    deleteDoc,
+    doc,
+    query,
+    orderBy,
+    serverTimestamp
 } from 'firebase/firestore';
+
+import { revalidatePath } from 'next/cache';
 
 export async function GET() {
     try {
         const productsRef = collection(db, 'products');
         const q = query(productsRef, orderBy('createdAt', 'desc'));
         const querySnapshot = await getDocs(q);
-        
+
         const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
             ...doc.data()
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
     try {
         const data = await req.json();
         const productsRef = collection(db, 'products');
-        
+
         const newProduct = {
             name: data.name,
             price: Number(data.price),
@@ -44,7 +46,11 @@ export async function POST(req: Request) {
         };
 
         const docRef = await addDoc(productsRef, newProduct);
-        return NextResponse.json({ _id: docRef.id, ...newProduct });
+        revalidatePath('/shop');
+        revalidatePath('/');
+        
+        return NextResponse.json({ _id: docRef.id, ...newProduct, message: "Success" });
+
     } catch (error: any) {
         return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }
@@ -58,7 +64,7 @@ export async function PUT(req: Request) {
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
         const productDocRef = doc(db, 'products', id);
-        
+
         // Clean up data before saving
         const cleanedData = {
             ...updateData,

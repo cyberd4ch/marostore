@@ -1,114 +1,117 @@
-/* "use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useSelector } from "react-redux";
-import { useRouter, useSearchParams } from "next/navigation";
-import { selectCurrentUser } from "@/store/user/user.selector";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import SignInForm from "@/components/SignInForm/sign-in-form.component";
-import SignUpForm from "@/components/SignUpForm/sign-up-form.component";
-import { Loader2 } from "lucide-react";
+import { useState } from 'react';
+import { auth } from '@/app/utils/firebase/firebase.utils';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+import { useRouter } from 'next/navigation';
+import { Loader2, CheckCircle2, Lock } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { toast } from 'sonner';
 
-// Move the logic into a sub-component to wrap it in Suspense
-function AuthContent() {
+import { sendPasswordResetEmail } from 'firebase/auth';
+
+export default function AuthPage() {
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [status, setStatus] = useState<'idle' | 'loading' | 'success'>('idle');
     const router = useRouter();
-    const searchParams = useSearchParams();
-    const currentUser = useSelector(selectCurrentUser);
-    
-    // Default to 'signin', but check search params
-    const mode = searchParams.get("mode");
-    const [activeTab, setActiveTab] = useState(mode === "signup" ? "signup" : "signin");
 
-    useEffect(() => {
-        if (currentUser) {
-            router.push("/onboarding"); 
+    const handleLogin = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setStatus('loading');
+
+        try {
+            await signInWithEmailAndPassword(auth, email, password);
+            setStatus('success');
+
+            // Short delay so they can actually see the success state
+            setTimeout(() => {
+                router.push('/dashboard');
+            }, 1500);
+        } catch (error: any) {
+            setStatus('idle');
+            toast.error("Invalid credentials. Please check your email and password.");
         }
-    }, [currentUser, router]);
+    };
 
-    if (currentUser) {
+    if (status === 'success') {
         return (
-            <div className="min-h-[50vh] flex flex-col items-center justify-center gap-4">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-900" />
-                <p className="text-slate-500 animate-pulse">Redirecting...</p>
+            <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+                <div className="animate-in zoom-in duration-500 flex flex-col items-center">
+                    <CheckCircle2 className="text-green-500 w-16 h-16 mb-4" />
+                    <h2 className="text-2xl font-bold tracking-tight">Welcome back, Admin</h2>
+                    <p className="text-slate-500">Preparing your dashboard...</p>
+                </div>
             </div>
         );
     }
 
-    return (
-        <div className="w-full max-w-md mx-auto">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full grid-cols-2 bg-slate-100 rounded-xl p-1 mb-8">
-                    <TabsTrigger 
-                        value="signin" 
-                        className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold uppercase text-xs tracking-widest"
-                    >
-                        Sign In
-                    </TabsTrigger>
-                    <TabsTrigger 
-                        value="signup"
-                        className="rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm font-bold uppercase text-xs tracking-widest"
-                    >
-                        Sign Up
-                    </TabsTrigger>
-                </TabsList>
-                <TabsContent value="signin" className="border-none p-0 outline-none">
-                    <SignInForm onSwitchToSignUp={() => setActiveTab("signup")} />
-                </TabsContent>
-                <TabsContent value="signup" className="border-none p-0 outline-none">
-                    <SignUpForm onSwitchToSignIn={() => router.push("/auth/register")} />
-                </TabsContent>
-            </Tabs>
-        </div>
-    );
-}
+    const handleForgotPassword = async () => {
+        if (!email) {
+            toast.error("Please enter your email address first so we know where to send the link.");
+            return;
+        }
 
-// Main Page Export with Suspense Boundary
-export default function AuthPage() {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50/50 p-6">
-            <Suspense fallback={
-                <div className="flex flex-col items-center gap-4">
-                    <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-                </div>
-            }>
-                <AuthContent />
-            </Suspense>
-        </div>
-    );
-} */
-
-"use client";
-
-import { Suspense } from "react";
-import { useRouter } from "next/navigation";
-import SignInForm from "@/components/SignInForm/sign-in-form.component"; // Adjust path if needed
-import { GalleryVerticalEnd, Loader2 } from "lucide-react";
-import Link from "next/link";
-
-export default function LoginPage() {
-    const router = useRouter();
+        try {
+            await sendPasswordResetEmail(auth, email);
+            toast.success("Reset link sent! Please check your inbox (and spam folder).");
+        } catch (error: any) {
+            toast.error("Could not send reset email. Please verify the address.");
+        }
+    };
 
     return (
-        <main className="relative min-h-screen bg-white flex items-center justify-center overflow-hidden p-6">
-            <div className="pointer-events-none absolute inset-0 overflow-hidden md:block hidden">
-                <div className="absolute -right-[10%] -top-[10%] h-[1000px] w-[1000px] rounded-full bg-slate-50" />
-                <div className="absolute -left-[5%] bottom-0 h-[600px] w-[600px] rounded-full bg-slate-50/50" />
-            </div>
-
-            <div className="relative z-10 w-full max-w-[450px] space-y-8">
-                <Link href="/" className="flex items-center gap-3 self-center font-black text-xl tracking-tighter justify-center">
-                    <div className="bg-slate-900 text-white flex size-8 items-center justify-center rounded-lg">
-                        <GalleryVerticalEnd className="size-5" />
+        <div className="flex items-center justify-center min-h-screen bg-slate-50 p-4">
+            <Card className="w-full max-w-md rounded-[2.5rem] shadow-2xl border-none p-8 bg-white">
+                <CardHeader className="flex flex-col items-center space-y-2">
+                    <div className="bg-black p-3 rounded-2xl mb-2">
+                        <Lock className="text-white w-6 h-6" />
                     </div>
-                    MARO STORE
-                </Link>
-
-                <div className="bg-white p-8 md:p-12 rounded-[2.5rem] border border-slate-100 shadow-[0_20px_50px_rgba(0,0,0,0.02)]">
-                    <Suspense fallback={<Loader2 className="animate-spin mx-auto h-8 w-8 text-slate-200" />}>
-                        <SignInForm onSwitchToSignUp={() => router.push("/auth/register")} />
-                    </Suspense>
-                </div>
-            </div>
-        </main>
+                    <CardTitle className="text-3xl font-black tracking-tighter italic">MARO STORE</CardTitle>
+                    <p className="text-slate-400 text-sm">Secure Merchant Access</p>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={handleLogin} className="space-y-4">
+                        <div className="space-y-2">
+                            <Input
+                                type="email"
+                                placeholder="Email"
+                                className="rounded-xl bg-slate-50 border-none h-12"
+                                onChange={(e) => setEmail(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Input
+                                type="password"
+                                placeholder="Password"
+                                className="rounded-xl bg-slate-50 border-none h-12"
+                                onChange={(e) => setPassword(e.target.value)}
+                                required
+                            />
+                        </div>
+                        <div className="flex justify-end pr-1">
+                            <button
+                                type="button"
+                                onClick={handleForgotPassword}
+                                className="text-xs text-slate-400 hover:text-black transition-colors"
+                            >
+                                Forgot Password?
+                            </button>
+                        </div>
+                        <Button
+                            disabled={status === 'loading'}
+                            className="w-full rounded-xl bg-black hover:bg-slate-800 h-12 transition-all"
+                        >
+                            {status === 'loading' ? (
+                                <Loader2 className="animate-spin mr-2" />
+                            ) : "Enter Dashboard"}
+                        </Button>
+                    </form>
+                </CardContent>
+            </Card>
+        </div>
     );
 }
