@@ -62,6 +62,8 @@ export async function POST(req: Request) {
             stock: Number(data.stock) || 0, // Ensure stock is a Number
             imageUrl: data.imageUrl,
             category: data.category || '',
+            status: data.status || 'published', // <-- NEW
+    activationDate: data.activationDate || null, // <-- NEW
             createdAt: new Date(),
         };
 
