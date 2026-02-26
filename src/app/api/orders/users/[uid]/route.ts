@@ -1,12 +1,18 @@
 import { adminAuth, adminDb } from '@/lib/firebaseAdmin';
 import { NextResponse } from 'next/server';
 
+// Add NextRequest to the import list
+import { NextRequest } from 'next/server';
+
 export async function GET(
-    request: Request,
-    { params }: { params: { uid: string } }
+    request: NextRequest,
+    // In Next.js 15+, context must be the second argument and params is a Promise
+    { params }: { params: Promise<{ uid: string }> }
 ) {
     try {
-        const { uid } = params; // Extract UID first
+        // 1. Properly await the params
+        const { uid } = await params;
+
         const authHeader = request.headers.get('Authorization');
 
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -15,12 +21,13 @@ export async function GET(
 
         const token = authHeader.split('Bearer ')[1];
         const decodedToken = await adminAuth.verifyIdToken(token);
-        
-        // Ensure requested UID matches the token UID (Security)
+
+        // Security check
         if (decodedToken.uid !== uid) {
             return NextResponse.json({ error: "Unauthorized access" }, { status: 403 });
         }
 
+        // 2. Query Firestore
         const ordersSnapshot = await adminDb
             .collection('orders')
             .where('userId', '==', uid)
@@ -36,6 +43,17 @@ export async function GET(
 
     } catch (error: any) {
         console.error("FETCH_USER_ORDERS_ERROR:", error);
-        return NextResponse.json({ error: error.message }, { status: 500 });
+
+        // Error code 9 is specifically for missing indexes in Firebase Admin
+        if (error.code === 9 || error.message?.includes('FAILED_PRECONDITION')) {
+            return NextResponse.json({
+                success: false,
+                errorType: "MISSING_INDEX",
+                message: "Database index is being built. Please try again in a few minutes.",
+                link: error.message.match(/https:\/\/console\.firebase\.google\.com[^\s]*/)?.[0]
+            }, { status: 500 });
+        }
+
+        return NextResponse.json({ success: false, error: error.message }, { status: 500 });
     }
 }
