@@ -1,19 +1,27 @@
+import React from 'react';
+
+// This ensures TypeScript recognizes the file as a module
 export default function AboutPage() {
     return (
-        <div className="max-w-4xl mx-auto px-6 py-24">
-            <h1 className="text-6xl font-black tracking-tighter uppercase mb-8">Our Story</h1>
-            <div className="h-1.5 w-20 bg-slate-900 rounded-full mb-12" />
-            
-            <div className="prose prose-slate prose-xl font-medium text-slate-600 space-y-8">
-                <p>
-                    Maro was born out of a desire for curated, high-quality essentials. 
-                    We believe that the items you wear should tell a story of craftsmanship and intentionality.
-                </p>
-                <p>
-                    Based in Ghana, we source and curate pieces that blend contemporary 
-                    aesthetics with timeless quality. Every "Deposit to Inventory" is 
-                    vetted by our team to ensure it meets the Maro standard.
-                </p>
+        <div className="max-w-3xl mx-auto px-6 py-24">
+            <h1 className="text-4xl font-black tracking-tighter uppercase mb-12">
+                About Maro
+            </h1>
+            <div className="space-y-12 text-slate-600">
+                <section>
+                    <h2 className="text-slate-900 font-bold uppercase mb-4">1. Information</h2>
+                    <p>
+                        Welcome to Maro. This page contains our general operating policies. 
+                        Please review our specific terms for shipping, returns, and privacy.
+                    </p>
+                </section>
+                <section>
+                    <h2 className="text-slate-900 font-bold uppercase mb-4">2. Usage</h2>
+                    <p>
+                        By using our inventory system and storefront, you agree to our 
+                        standard terms of service.
+                    </p>
+                </section>
             </div>
         </div>
     );
