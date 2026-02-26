@@ -119,7 +119,7 @@ const startEdit = (item: any) => {
     };
 
     try {
-        const response = await fetch('/api/admin/products', {
+        const response = await fetch('/api/products', {
             method, // Now defined!
             headers: {
                 'Content-Type': 'application/json',
