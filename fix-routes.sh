@@ -43,7 +43,7 @@ export default function SignInPage() {
       <div className="max-w-md w-full space-y-8 p-8 bg-white rounded-lg shadow">
         <div>
           <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to Marostore
+            Sign in to marostore
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
             Enter your credentials to access your account
@@ -110,7 +110,7 @@ export default function SignUpPage() {
             Create your account
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            Join Marostore Fashion Store today
+            Join marostore Fashion Store today
           </p>
         </div>
         <form className="mt-8 space-y-6">
