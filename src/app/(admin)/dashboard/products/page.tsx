@@ -78,52 +78,72 @@ const startEdit = (item: any) => {
     };
 
     const handleAction = async () => {
-        if (!product.imageUrl) return toast.error("Main image is required");
-        if (!product.name || !product.price) return toast.error("Name and Price are required");
+    // 1. Validation
+    if (!product.imageUrl) return toast.error("Main image is required");
+    if (!product.name || !product.price) return toast.error("Name and Price are required");
 
-        setIsLoading(true);
-        const token = await auth.currentUser?.getIdToken();
-        if (!token) {
-            toast.error("Admin session expired. Please login again.");
-            setIsLoading(false);
-            return;
-        }
+    setIsLoading(true);
+    
+    // FIX 1: Define the missing 'method' variable
+    const method = editingId ? 'PUT' : 'POST';
+    
+    let token;
+    try {
+        token = await auth.currentUser?.getIdToken(true);
+        if (!token) throw new Error("No session found");
+    } catch (authError) {
+        toast.error("Security session expired. Please refresh.");
+        setIsLoading(false);
+        return;
+    }
 
-        const method = editingId ? 'PUT' : 'POST';
-        
-        // Data Transformation (Strings to Arrays/Numbers)
-        const body = {
-            ...product,
-            id: editingId,
-            price: Number(product.price),
-            discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
-            stock: Number(product.stock),
-            colors: product.colors.split(',').map(c => c.trim()).filter(c => c !== ""),
-            sizes: product.sizes.split(',').map(s => s.trim()).filter(s => s !== ""),
-            activationDate: product.status === 'draft' && product.activationDate ? new Date(product.activationDate).toISOString() : null
-        };
-
-        try {
-            const response = await fetch('/api/admin/products', {
-                method,
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify(body),
-            });
-
-            if (response.ok) {
-                toast.success(editingId ? "Product updated!" : "Success! Item is live.");
-                cancelEdit();
-                fetchInventory();
-            }
-        } catch (error) {
-            toast.error("Action failed");
-        } finally {
-            setIsLoading(false);
-        }
+    // FIX 2: Data Transformation (Ensuring colors/sizes are arrays for the live site)
+    const body = {
+        ...product,
+        id: editingId,
+        price: Number(product.price),
+        discountPrice: product.discountPrice ? Number(product.discountPrice) : null,
+        stock: Number(product.stock),
+        // Convert comma-separated strings back into clean arrays
+        colors: typeof product.colors === 'string' 
+            ? product.colors.split(',').map(c => c.trim()).filter(c => c !== "") 
+            : product.colors,
+        sizes: typeof product.sizes === 'string' 
+            ? product.sizes.split(',').map(s => s.trim()).filter(s => s !== "") 
+            : product.sizes,
+        // Ensure status is explicitly sent
+        status: product.status,
+        activationDate: product.status === 'draft' && product.activationDate 
+            ? new Date(product.activationDate).toISOString() 
+            : null
     };
+
+    try {
+        const response = await fetch('/api/admin/products', {
+            method, // Now defined!
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify(body),
+        });
+
+        const result = await response.json();
+
+        if (response.ok) {
+            toast.success(editingId ? "Product updated!" : "Success! Item is live.");
+            cancelEdit();
+            fetchInventory();
+        } else {
+            toast.error(result.message || "Failed to save product");
+        }
+    } catch (error) {
+        console.error("Submission error:", error);
+        toast.error("Network error. Check your connection.");
+    } finally {
+        setIsLoading(false);
+    }
+};
 
     const handleDelete = async (id: string) => {
         if (!window.confirm("Delete this product?")) return;
