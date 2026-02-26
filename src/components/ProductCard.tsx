@@ -119,8 +119,8 @@ const ProductCard = ({ product, compact = false }: ProductCardProps) => {
                     </Link>
 
                     <div className={`flex items-center justify-between ${compact ? "mt-1" : "mt-4"}`}>
-                        <p className={`font-black text-slate-900 ${compact ? "text-sm" : "text-xl"}`}>
-                            ${product.price.toFixed(2)}
+                        <p className={`font-sans font-semibold text-slate-900 ${compact ? "text-sm" : "text-xl"}`}>
+                            ₵{Number(product.price).toLocaleString()}
                         </p>
 
                         {!compact && (

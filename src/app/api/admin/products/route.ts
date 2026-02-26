@@ -10,22 +10,32 @@ async function isAuthorized(req: Request) {
 
 export async function GET(req: Request) {
     try {
+        // 1. Parse the URL to look for a category filter
+        const { searchParams } = new URL(req.url);
+        const categoryFilter = searchParams.get('category');
+
         const authorized = await isAuthorized(req);
-        let querySnapshot;
+        let query;
 
         if (authorized) {
-            // Admin View: Get everything
-            querySnapshot = await adminDb.collection('products')
-                .orderBy('createdAt', 'desc')
-                .get();
+            // ADMIN VIEW: Still get everything for the Manager
+            query = adminDb.collection('products').orderBy('createdAt', 'desc');
         } else {
-            // Public View: Only get published. 
-            // ⚠️ WARNING: If this crashes, you need a Firestore Index!
-            querySnapshot = await adminDb.collection('products')
-                .where('status', '==', 'published')
-                .orderBy('createdAt', 'desc')
-                .get();
+            // PUBLIC VIEW: Start with published items
+            query = adminDb.collection('products')
+                .where('status', '==', 'published');
+
+            // 2. SERVER-SIDE FILTERING: If a category is requested, add it to the query
+            if (categoryFilter) {
+                // We lowercase here because we save them as lowercase in the POST route
+                query = query.where('category', '==', categoryFilter.toLowerCase());
+            }
+
+            // Always sort by newest
+            query = query.orderBy('createdAt', 'desc');
         }
+
+        const querySnapshot = await query.get();
 
         const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
@@ -35,7 +45,6 @@ export async function GET(req: Request) {
         return NextResponse.json(products);
     } catch (error: any) {
         console.error("GET Error details:", error.message);
-        // Expose the actual error to the client so you know if it's an Index issue
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
