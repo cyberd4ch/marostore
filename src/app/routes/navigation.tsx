@@ -1,27 +1,22 @@
 'use client';
 
 import { Fragment, useState, useEffect } from 'react';
-import { Heart } from 'lucide-react';
+import { Heart, ShieldCheck, Search, User as UserIcon } from 'lucide-react'; // Added ShieldCheck
 import Link from 'next/link';
-// Removed 'next/image' import since we are using text now
 import { useSelector, useDispatch } from 'react-redux';
 import { usePathname, useRouter } from 'next/navigation';
-import { Search, User as UserIcon } from 'lucide-react';
-import { SearchCommand } from '@/components/search-command/search-command';
 
+import { SearchCommand } from '@/components/search-command/search-command';
 import CartIcon from '@/components/cart-icon/cart-icon.component';
 import CartDropdown from '@/components/cart-dropdown/cart-dropdown.component';
 import { NavMenu } from '@/components/nav-menu/nav-menu';
 import { NavigationSheet } from '@/components/navigation-sheet/navigation-sheet';
 
-import { selectWishlistCount } from '@/store/wishlist/wishlist.selector';
-import { selectIsCartOpen } from '@/store/cart/cart.selector';
+import { selectWishlistCount, selectWishlistItems } from '@/store/wishlist/wishlist.selector';
+import { selectIsCartOpen, selectCartItems } from '@/store/cart/cart.selector';
 import { selectCurrentUser } from '@/store/user/user.selector';
 import { signOutStart } from '@/store/user/user.action';
 import { Button } from '@/components/ui/button';
-
-import { selectCartItems } from '@/store/cart/cart.selector'; // Add this
-import { selectWishlistItems } from '@/store/wishlist/wishlist.selector'; // Add this
 
 export default function Navigation({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
@@ -35,44 +30,26 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
     const wishlistCount = useSelector(selectWishlistCount);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
-
     const signOutUser = () => {
-        // 1. Manually expire the cookies immediately
-        // We set the date to the beginning of time (1970) so the browser deletes them
         document.cookie = "__session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
         document.cookie = "onboardingCompleted=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
-
-        // 2. Trigger the Redux Saga for Firebase Sign Out
         dispatch(signOutStart());
-
-        // 3. Force a redirect to the auth page (or home)
-        // This ensures the Middleware runs immediately on the new destination
         router.replace('/auth');
     };
 
     useEffect(() => {
-        // Only trigger if user is on Login or Signup page
         const isAuthPage = pathname === '/auth' || pathname === '/login' || pathname === '/signup';
-
         if (currentUser && isAuthPage) {
             const user = currentUser as any;
-
-            // 1. Force Onboarding if incomplete
             if (!user.onboardingCompleted || !user.username) {
                 router.replace('/onboarding');
                 return;
             }
-
-            // 2. Cart has items? Go to checkout
             if (cartItems.length > 0) {
                 router.replace('/checkout');
-            }
-            // 3. No cart but has favorites? Go to profile wishlist view
-            else if (favoriteItems.length > 0) {
+            } else if (favoriteItems.length > 0) {
                 router.replace(`/u/${user.username}?view=wishlist`);
-            }
-            // 4. Default profile
-            else {
+            } else {
                 router.replace(`/u/${user.username}`);
             }
         }
@@ -80,9 +57,8 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
     return (
         <Fragment>
-            {/* Floating Navbar Aesthetic */}
             <header className="fixed inset-x-4 top-4 z-50 mx-auto flex h-16 max-w-7xl items-center justify-between rounded-full border border-slate-200 bg-white/90 px-4 shadow-sm backdrop-blur-md md:px-8">
-
+                
                 {/* Left: Text Logo */}
                 <Link href="/" className="flex shrink-0 items-center">
                     <span className="text-2xl font-extrabold tracking-tighter text-slate-900 transition-colors hover:text-slate-700 md:text-3xl">
@@ -90,30 +66,38 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                     </span>
                 </Link>
 
-                {/* Center: Desktop Navigation Links (shadcn) */}
+                {/* Center: Desktop Navigation Links */}
                 <div className="hidden md:flex flex-1 justify-center">
                     <NavMenu />
                 </div>
 
                 {/* Right: Icons & Actions */}
                 <div className="flex items-center gap-4 lg:gap-6 shrink-0">
-
-                    {/* Search Icon */}
+                    
+                    {/* Search */}
                     <button
                         onClick={() => setIsSearchOpen(true)}
                         className="hidden md:flex items-center gap-2 text-sm text-slate-500 hover:text-slate-900 transition-colors bg-slate-100/50 hover:bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200/60"
                     >
                         <Search className="h-4 w-4" />
                         <span className="font-medium">Search...</span>
-                        <kbd className="pointer-events-none inline-flex h-5 select-none items-center gap-1 rounded border border-slate-300 bg-slate-50 px-1.5 font-mono text-[10px] font-medium text-slate-500 opacity-100">
-                            <span className="text-xs">⌘</span>K
-                        </kbd>
                     </button>
 
-                    {/* Desktop Auth */}
+                    {/* Desktop Auth & Admin Panel */}
                     <div className="hidden md:flex items-center gap-4">
                         {currentUser ? (
                             <div className="flex items-center gap-4">
+                                {/* --- ADMIN ONLY BUTTON --- */}
+                                {currentUser.isAdmin && (
+                                    <Link 
+                                        href="/dashboard" 
+                                        className="flex items-center gap-2 px-3 py-1.5 bg-amber-100 text-amber-700 rounded-full font-black text-[10px] tracking-widest hover:bg-amber-200 transition-all border border-amber-200 shadow-sm uppercase"
+                                    >
+                                        <ShieldCheck size={14} />
+                                        Admin
+                                    </Link>
+                                )}
+                                
                                 <Link href={`/u/${(currentUser as any).username || 'profile'}`}>
                                     <UserIcon className="h-5 w-5 text-slate-600 hover:text-slate-900 transition-colors" />
                                 </Link>
@@ -128,9 +112,9 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                         )}
                     </div>
 
+                    {/* Wishlist */}
                     <Link href="/wishlist" className="relative group p-2">
                         <Heart className="h-6 w-6 text-slate-700 transition-colors group-hover:text-red-500" />
-
                         {wishlistCount > 0 && (
                             <span className="absolute -top-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-red-500 text-[10px] font-bold text-white ring-2 ring-white animate-in zoom-in">
                                 {wishlistCount}
@@ -138,7 +122,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                         )}
                     </Link>
 
-                    {/* Cart Icon & Dropdown Container */}
+                    {/* Cart */}
                     <div className="relative flex items-center">
                         <CartIcon />
                         {isCartOpen && (
@@ -148,8 +132,9 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                         )}
                     </div>
 
-                    {/* Mobile Menu Trigger (shadcn Sheet) */}
+                    {/* Mobile Menu Trigger */}
                     <div className="md:hidden flex items-center">
+                        {/* Note: Ensure NavigationSheet handles currentUser.isAdmin internally */}
                         <NavigationSheet currentUser={currentUser} signOutUser={signOutUser} />
                     </div>
                 </div>
@@ -157,7 +142,6 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
 
             <SearchCommand open={isSearchOpen} setOpen={setIsSearchOpen} />
 
-            {/* Content Wrapper */}
             <main className="pt-28 min-h-screen bg-slate-50/50">
                 {children}
             </main>
