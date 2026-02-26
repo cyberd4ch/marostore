@@ -28,6 +28,10 @@ import { error } from 'console';
 
 const PaymentPage = () => {
     const cartItems = useSelector(selectCartItems);
+    const formData = useSelector(state => ({
+        email: selectGuestEmail(state),
+        items: selectCartItems(state)
+    }));
     const currentUser = useSelector(selectCurrentUser);
     const router = useRouter();
     const [isProcessing, setIsProcessing] = useState(false);
@@ -45,59 +49,43 @@ const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({
     const shippingCost = cartTotal > 200 ? 0 : 20;
     const totalPayable = cartTotal + shippingCost;
 
-    const handlePayment = useCallback(async () => {
-        const userEmail = currentUser?.email || guestEmail;
-
-        if (!userEmail) {
-        return toast.error("Please fill in all delivery details first");
-    }
-
-        if (!userEmail || !userEmail.includes('@')) {
-            toast.error("Please provide a valid email address for your receipt.");
-            return;
-        }
-
-        if (cartItems.length === 0) {
-            toast.error("Your cart is empty");
-            return;
-        }
-
-setIsProcessing(true);
+    const handlePayment = async () => {
+    if (cartItems.length === 0) return toast.error("Your cart is empty!");
+    
+    setIsProcessing(true);
 
     try {
-        // --- THE IRONCLAD HANDOFF ---
-        // Save everything to localStorage so it survives the Paystack redirect
+        // 1. SAVE TO LOCAL STORAGE (Emergency Backup)
         localStorage.setItem('cart', JSON.stringify(cartItems));
-        localStorage.setItem('pendingCheckout', JSON.stringify({
+        localStorage.setItem('pendingCheckout', JSON.stringify(formData));
 
-            email: userEmail,
-
-        }));
-        // ----------------------------
-
-        // 2. Initialize the transaction with your API
+        // 2. CALL INITIALIZE API
         const response = await fetch('/api/payment', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-                email: userEmail,
-                amount: totalPayable, // The total calculated in your cart
+                email: guestEmail,
+                amount: totalPayable, // e.g., 250
+                cart: cartItems, // Backup for the verify route
+                customerDetails: { phone: momoNumber } // Backup for the verify route
             }),
         });
 
         const data = await response.json();
 
+        // 3. REDIRECT TO PAYSTACK
         if (data.authorization_url) {
-            // 3. Redirect the user to Paystack
+            // Paystack will create the 'reference' now and 
+            // send it back to your /success page later.
             window.location.href = data.authorization_url;
         } else {
-            throw new Error(data.message || "Payment initialization failed");
+            throw new Error(data.message || "Could not start transaction");
         }
     } catch (error: any) {
-        toast.error(error.message || "Something went wrong");
+        toast.error(error.message);
         setIsProcessing(false);
     }
-    }, [totalPayable, cartItems]);
+};
 
     return (
         <div className="min-h-screen bg-slate-50/50 py-12">
