@@ -18,18 +18,18 @@ if (!admin.apps.length) {
 }
 
 export const adminDb = getFirestore();
+export const adminAuth = admin.auth();
 
-export async function verifyAdmin(token: string): Promise<boolean> {
+export async function verifyAdminStatus(token: string): Promise<boolean> {
     try {
-        const decodedToken = await admin.auth().verifyIdToken(token);
+        const decodedToken = await adminAuth.verifyIdToken(token);
         const uid = decodedToken.uid;
 
-        // Fetch user document from Firestore to check the isAdmin flag
+        // Check Firestore for the isAdmin flag
         const userDoc = await adminDb.collection('users').doc(uid).get();
         if (!userDoc.exists) return false;
 
-        const userData = userDoc.data();
-        return userData?.isAdmin === true;
+        return userDoc.data()?.isAdmin === true;
     } catch (error) {
         console.error('Error verifying admin:', error);
         return false;

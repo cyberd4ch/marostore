@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import admin from 'firebase-admin';
-import { adminDb, verifyAdmin } from '@/lib/firebaseAdmin';
+import { adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
 
 // GET: Fetch all orders for the Admin Logistics page
 export async function GET(req: Request) {
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
         const token = authHeader?.split('Bearer ')[1];
 
         // Security: Ensure only admins can fetch the order list
-        if (!token || !(await verifyAdmin(token))) {
+        if (!token || !(await verifyAdminStatus(token))) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
@@ -41,7 +41,7 @@ export async function PATCH(req: Request) {
         const authHeader = req.headers.get('authorization');
         const token = authHeader?.split('Bearer ')[1];
 
-        if (!token || !(await verifyAdmin(token))) {
+        if (!token || !(await verifyAdminStatus(token))) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 

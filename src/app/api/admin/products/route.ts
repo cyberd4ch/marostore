@@ -12,17 +12,20 @@ import {
     serverTimestamp
 } from 'firebase/firestore';
 
-import { adminAuth, adminDb } from '@/lib/firebase-admin';
+import { adminAuth, adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
 
 import { revalidatePath } from 'next/cache';
 
-async function verifyAdmin(req: Request) {
+
+async function checkAdminStatus(req: Request) {
     const token = req.headers.get('Authorization')?.split('Bearer ')[1];
     if (!token) return null;
     try {
+        // USE adminAuth HERE, not the function name!
         const decoded = await adminAuth.verifyIdToken(token);
         return decoded.admin ? decoded : null;
-    } catch {
+    } catch (error) {
+        console.error("Auth Error:", error);
         return null;
     }
 }
@@ -31,7 +34,7 @@ export async function GET() {
     try {
         const productsRef = collection(db, 'products');
         const q = query(productsRef, orderBy('createdAt', 'desc'));
-        const querySnapshot = await getDocs(q);
+        const querySnapshot = await adminDb.collection('products').orderBy('createdAt', 'desc').get();
 
         const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
@@ -46,6 +49,10 @@ export async function GET() {
 
 export async function POST(req: Request) {
     try {
+        const adminUser = await checkAdminStatus(req);
+        if (!adminUser) {
+            return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
+        }
         const data = await req.json();
         const productsRef = collection(db, 'products');
 
@@ -55,10 +62,10 @@ export async function POST(req: Request) {
             stock: Number(data.stock) || 0, // Ensure stock is a Number
             imageUrl: data.imageUrl,
             category: data.category || '',
-            createdAt: serverTimestamp(),
+            createdAt: new Date(),
         };
 
-        const docRef = await addDoc(productsRef, newProduct);
+        const docRef = await adminDb.collection('products').add(newProduct);
         revalidatePath('/shop');
         revalidatePath('/');
         
