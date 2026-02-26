@@ -68,7 +68,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
     try {
-        // 1. CHECK SECURITY
+        // 1. SECURITY CHECK
         const authorized = await isAuthorized(req);
         if (!authorized) {
             return NextResponse.json({ error: "Unauthorized: Admins only" }, { status: 403 });
@@ -76,26 +76,44 @@ export async function POST(req: Request) {
 
         const data = await req.json();
 
-        // 2. FORMAT DATA
+        // 2. DATA SANITIZATION (The critical part for your Shop Page)
         const newProduct = {
             name: data.name,
             price: Number(data.price),
+            discountPrice: data.discountPrice ? Number(data.discountPrice) : null,
             stock: Number(data.stock) || 0,
             imageUrl: data.imageUrl,
-            category: data.category || '',
-            status: data.status || 'published',
+            // FIX: Trim and Lowercase category to prevent "Shoes" vs "shoes" duplicates
+            category: data.category ? data.category.trim().toLowerCase() : 'uncategorized',
+            // FIX: Ensure status is strictly 'published' or 'draft'
+            status: data.status === 'draft' ? 'draft' : 'published',
+            // Extra metadata for the Shop Page
+            brand: data.brand || '',
+            sku: data.sku || '',
+            colors: Array.isArray(data.colors) ? data.colors : [],
+            sizes: Array.isArray(data.sizes) ? data.sizes : [],
+            description: data.description || '',
             activationDate: data.activationDate || null,
-            createdAt: new Date(), // Admin SDK uses standard JS Dates
+            createdAt: new Date(), 
+            updatedAt: new Date(),
         };
 
         // 3. SAVE TO FIRESTORE
         const docRef = await adminDb.collection('products').add(newProduct);
+
+        // 4. CACHE CLEARING
+        // This forces Next.js to show the new product immediately on the live site
         revalidatePath('/shop');
         revalidatePath('/');
         
-        return NextResponse.json({ _id: docRef.id, ...newProduct, message: "Success" });
+        return NextResponse.json({ 
+            _id: docRef.id, 
+            ...newProduct, 
+            message: "Product successfully live." 
+        });
 
     } catch (error: any) {
+        console.error("POST Error:", error);
         return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }
 }
