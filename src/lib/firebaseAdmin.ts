@@ -23,10 +23,12 @@ export const adminAuth = admin.auth();
 export async function verifyAdminStatus(token: string): Promise<boolean> {
     try {
         const decodedToken = await adminAuth.verifyIdToken(token);
+        console.log("Checking Admin for UID:", decodedToken.uid);
         const uid = decodedToken.uid;
 
         // Check Firestore for the isAdmin flag
         const userDoc = await adminDb.collection('users').doc(uid).get();
+        console.log("User Data Found:", userDoc.data());
         if (!userDoc.exists) return false;
 
         return userDoc.data()?.isAdmin === true;
