@@ -21,6 +21,8 @@ import { setGuestEmail } from '../../store/user/user.action'; // Use your action
 
 
 
+
+
 import { selectCurrentUser, selectGuestEmail } from '../../store/user/user.selector';
 import { error } from 'console';
 
@@ -46,6 +48,10 @@ const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({
     const handlePayment = useCallback(async () => {
         const userEmail = currentUser?.email || guestEmail;
 
+        if (!userEmail) {
+        return toast.error("Please fill in all delivery details first");
+    }
+
         if (!userEmail || !userEmail.includes('@')) {
             toast.error("Please provide a valid email address for your receipt.");
             return;
@@ -56,43 +62,41 @@ const onEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => dispatch({
             return;
         }
 
-        setIsProcessing(true);
-        try {
-            const response = await fetch('/api/payment', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email: userEmail,
-                    amount: totalPayable,
-                    callback_url: `${window.location.origin}/shop/checkout/success`,
-                    metadata: {
-                        custom_fields: [
-                            {
-                                display_name: "Mobile Number",
-                                variable_name: "mobile_number",
-                                value: momoNumber
-                            }
-                        ]
-                    }
-                }),
-            });
+setIsProcessing(true);
 
-            const data = await response.json();
+    try {
+        // --- THE IRONCLAD HANDOFF ---
+        // Save everything to localStorage so it survives the Paystack redirect
+        localStorage.setItem('cart', JSON.stringify(cartItems));
+        localStorage.setItem('pendingCheckout', JSON.stringify({
 
-            // Check if the API returned the data correctly
-            if (data && data.authorization_url) {
-                // REDIRECT FLOW: This bypasses all HTTP/HTTPS iframe security issues
-                // It is the most reliable method for local development and mobile devices
-                window.location.href = data.authorization_url;
-            } else {
-                toast.error(data.message || "Failed to initialize payment");
-                setIsProcessing(false);
-            }
-        } catch (error) {
-            console.error("Payment initialization error:", error);
-            toast.error("An error occurred. Please try again.");
-            setIsProcessing(false);
+            email: userEmail,
+
+        }));
+        // ----------------------------
+
+        // 2. Initialize the transaction with your API
+        const response = await fetch('/api/payment', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                email: userEmail,
+                amount: totalPayable, // The total calculated in your cart
+            }),
+        });
+
+        const data = await response.json();
+
+        if (data.authorization_url) {
+            // 3. Redirect the user to Paystack
+            window.location.href = data.authorization_url;
+        } else {
+            throw new Error(data.message || "Payment initialization failed");
         }
+    } catch (error: any) {
+        toast.error(error.message || "Something went wrong");
+        setIsProcessing(false);
+    }
     }, [totalPayable, cartItems]);
 
     return (
