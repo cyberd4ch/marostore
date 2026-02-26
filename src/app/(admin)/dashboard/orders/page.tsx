@@ -17,8 +17,14 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
         try {
             const token = await auth.currentUser?.getIdToken(true);
-            const res = await fetch('/api/admin/orders', {
-                headers: { 'Authorization': `Bearer ${token}` }
+            // We add a timestamp 't' to the URL to force the browser to bypass any cache
+            const res = await fetch(`/api/admin/orders?t=${Date.now()}`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Cache-Control': 'no-cache', // Explicitly tell the server not to cache
+                    'Pragma': 'no-cache'
+                }
             });
             const data = await res.json();
             setOrders(Array.isArray(data) ? data : []);
@@ -99,7 +105,7 @@ const OrdersPage = () => {
                                             </span>
                                             <div className="font-black text-slate-900 text-base italic uppercase">#{order.orderReference?.slice(-8)}</div>
                                             <div className="text-[11px] font-medium text-slate-500 mt-1 flex items-center gap-1">
-                                                <Mail size={12}/> {order.customerEmail}
+                                                <Mail size={12} /> {order.customerEmail}
                                             </div>
                                         </div>
                                     </TableCell>
@@ -109,12 +115,12 @@ const OrdersPage = () => {
                                             {/* PAYSTACK INDICATOR */}
                                             {order.paymentStatus === 'success' ? (
                                                 <div className="flex items-center gap-1.5 text-emerald-600 bg-emerald-50 w-fit px-3 py-1 rounded-full border border-emerald-100">
-                                                    <CheckCircle2 size={12}/>
+                                                    <CheckCircle2 size={12} />
                                                     <span className="text-[10px] font-black uppercase italic">Paid via Paystack</span>
                                                 </div>
                                             ) : (
                                                 <div className="flex items-center gap-1.5 text-rose-600 bg-rose-50 w-fit px-3 py-1 rounded-full border border-rose-100">
-                                                    <AlertTriangle size={12}/>
+                                                    <AlertTriangle size={12} />
                                                     <span className="text-[10px] font-black uppercase italic">Payment Failed</span>
                                                 </div>
                                             )}
@@ -125,11 +131,10 @@ const OrdersPage = () => {
                                     <TableCell>
                                         <div className="flex flex-col gap-2">
                                             <select
-                                                className={`text-[10px] font-black uppercase tracking-widest border-2 rounded-xl px-3 py-2 cursor-pointer transition-all ${
-                                                    order.status === 'Delivered' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' :
-                                                    order.status === 'Shipped' ? 'border-blue-500 bg-blue-50 text-blue-700' :
-                                                    'border-slate-200 bg-slate-50'
-                                                }`}
+                                                className={`text-[10px] font-black uppercase tracking-widest border-2 rounded-xl px-3 py-2 cursor-pointer transition-all ${order.status === 'Delivered' ? 'border-emerald-500 bg-emerald-50 text-emerald-700' :
+                                                        order.status === 'Shipped' ? 'border-blue-500 bg-blue-50 text-blue-700' :
+                                                            'border-slate-200 bg-slate-50'
+                                                    }`}
                                                 onChange={(e) => updateStatus(order._id, e.target.value)}
                                                 value={order.status}
                                             >
@@ -182,13 +187,13 @@ function OrderDetailsDialog({ order }: { order: any }) {
                         </Badge>
                     </div>
                 </div>
-                
+
                 <div className="p-8 grid grid-cols-1 md:grid-cols-5 gap-8 bg-white">
                     {/* Customer & Shipping */}
                     <div className="md:col-span-2 space-y-6">
                         <section>
                             <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                                <MapPin size={12}/> Shipping Destination
+                                <MapPin size={12} /> Shipping Destination
                             </h4>
                             <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
                                 <p className="text-sm font-black text-slate-900 mb-1">{order.customerName || 'Customer'}</p>
@@ -196,7 +201,7 @@ function OrderDetailsDialog({ order }: { order: any }) {
                                     {order.shippingAddress || "Digital Address/Location not specified"}
                                 </p>
                                 <div className="mt-4 pt-4 border-t border-slate-200 flex items-center gap-2 text-blue-600">
-                                    <Phone size={14}/>
+                                    <Phone size={14} />
                                     <span className="text-sm font-bold">{order.customerPhone || 'No Phone'}</span>
                                 </div>
                             </div>
@@ -205,7 +210,7 @@ function OrderDetailsDialog({ order }: { order: any }) {
                         {/* Inventory Alert */}
                         {isOutOfStock && (
                             <div className="bg-rose-50 border-2 border-rose-100 p-4 rounded-2xl flex items-start gap-3">
-                                <AlertTriangle className="text-rose-600 shrink-0" size={20}/>
+                                <AlertTriangle className="text-rose-600 shrink-0" size={20} />
                                 <div>
                                     <p className="text-xs font-black text-rose-700 uppercase">Inventory Conflict</p>
                                     <p className="text-[10px] text-rose-600 font-medium">One or more items in this order exceed current stock levels.</p>
@@ -217,7 +222,7 @@ function OrderDetailsDialog({ order }: { order: any }) {
                     {/* Order Items */}
                     <div className="md:col-span-3 space-y-4">
                         <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                            <ShoppingBag size={12}/> Cart Contents
+                            <ShoppingBag size={12} /> Cart Contents
                         </h4>
                         <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
                             {order.items?.map((item: any, idx: number) => {
@@ -225,7 +230,7 @@ function OrderDetailsDialog({ order }: { order: any }) {
                                 return (
                                     <div key={idx} className={`flex gap-4 p-3 rounded-2xl border-2 transition-all ${outOfStock ? 'border-rose-200 bg-rose-50/30' : 'border-slate-50 bg-slate-50/50'}`}>
                                         <div className="h-16 w-16 bg-white rounded-xl border relative overflow-hidden shrink-0">
-                                            {item.imageUrl && <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized/>}
+                                            {item.imageUrl && <Image src={item.imageUrl} alt={item.name} fill className="object-cover" unoptimized />}
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex justify-between items-start">
