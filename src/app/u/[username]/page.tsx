@@ -111,11 +111,22 @@ const UserProfile = () => {
         }
     }, [isOwnProfile, isHydrated, fetchUserOrders]);
 
-    useEffect(() => {
+ useEffect(() => {
         const fetchUserData = async () => {
-            if (!username || typeof username !== "string") return;
+            // 1. Handle missing username in URL (e.g., user navigated to /profile instead of /profile/name)
+            if (!username || typeof username !== "string") {
+                if (currentUser) {
+                    setUserData(currentUser);
+                    setEditFields(currentUser);
+                }
+                setLoading(false);
+                return;
+            }
+
             setLoading(true);
             try {
+                console.log(`🔍 Searching Firestore for username: "${username}"`);
+                
                 const usersRef = collection(db, "users");
                 const q = query(usersRef, where("username", "==", username));
                 const querySnapshot = await getDocs(q);
@@ -125,15 +136,29 @@ const UserProfile = () => {
                     const docId = querySnapshot.docs[0].id;
                     setUserData({ ...data, id: docId });
                     setEditFields(data);
+                    console.log("✅ User found in database!");
+                } else {
+                    console.warn(`❌ No user found in database with username: "${username}"`);
+                    
+                    // BULLETPROOF FALLBACK: If the database misses but it's the logged-in user, use Redux
+                    if (currentUser && (currentUser.username === username || currentUser.uid === username)) {
+                        console.log("🔄 Falling back to Redux currentUser state.");
+                        setUserData(currentUser);
+                        setEditFields(currentUser);
+                    }
                 }
             } catch (error) {
-                toast.error("Failed to load profile.");
+                console.error("🔥 Profile fetch error:", error);
+                toast.error("Failed to load profile data.");
             } finally {
                 setLoading(false);
             }
         };
-        fetchUserData();
-    }, [username]);
+
+        if (isHydrated) {
+            fetchUserData();
+        }
+    }, [username, currentUser, isHydrated]);
 
     useEffect(() => {
         if (!loading && view === 'wishlist' && wishlistRef.current) {
