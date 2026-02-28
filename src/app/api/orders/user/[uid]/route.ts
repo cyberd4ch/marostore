@@ -1,10 +1,16 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '@/app/utils/firebase/firebase.utils';
 
-export async function GET(request: Request, { params }: { params: { uid: string } }) {
+// Define the context type for Next.js 16 (params is a Promise)
+type RouteContext = {
+    params: Promise<{ uid: string }>;
+};
+
+export async function GET(request: NextRequest, context: RouteContext) {
     try {
-        const { uid } = params;
+        // 1. Await the params (Required in Next.js 15/16)
+        const { uid } = await context.params;
 
         if (!uid) {
             return NextResponse.json(
@@ -13,7 +19,7 @@ export async function GET(request: Request, { params }: { params: { uid: string 
             );
         }
 
-        // Query Firestore for orders matching this user's ID
+        // 2. Query Firestore
         const ordersRef = collection(db, "orders");
         const q = query(ordersRef, where("userId", "==", uid));
         const snapshot = await getDocs(q);
@@ -28,12 +34,12 @@ export async function GET(request: Request, { params }: { params: { uid: string 
     } catch (error: any) {
         console.error("API Orders Error:", error);
 
-        // If it's a Firestore index error, we format it so your frontend can read the link
-        if (error.message.includes("failed: prefetch_ref_check")) {
+        // Handle Firestore index errors
+        if (error.message?.includes("index")) {
             return NextResponse.json({
                 success: false,
                 errorType: "MISSING_INDEX",
-                message: "Database requires an index.",
+                message: "Database index required.",
                 link: error.message
             }, { status: 400 });
         }

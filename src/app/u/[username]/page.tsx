@@ -4,16 +4,17 @@ import { useSelector, useDispatch } from "react-redux";
 import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import ProductCard from "@/components/ProductCard";
-import { useEffect, useState, useRef, useCallback } from "react"; // Added useCallback
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-import { collection, query, where, getDocs, doc, updateDoc } from "firebase/firestore";
+// ADDED: getDoc to the imports below
+import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
     Loader2, User as UserIcon, Save, X, Edit2,
-    Heart, Share2, Check, Phone, MapPin, Search, RefreshCw // Added RefreshCw
+    Share2, Check, RefreshCw 
 } from "lucide-react";
 
 import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
@@ -39,7 +40,9 @@ const UserProfile = () => {
     const router = useRouter();
     const dispatch = useDispatch();
     const searchParams = useSearchParams();
-    const { username } = useParams();
+    const params = useParams();
+    // In Next.js 16, it's safer to access params like this in Client Components
+    const username = params?.username as string;
 
     const wishlistRef = useRef<HTMLDivElement>(null);
     const view = searchParams.get('view');
@@ -54,7 +57,6 @@ const UserProfile = () => {
     const [isHydrated, setIsHydrated] = useState(false);
     const [editFields, setEditFields] = useState<any>({});
 
-    const wishlistItems = useSelector(selectWishlistItems);
     const currentUser = useSelector(selectCurrentUser);
     const recentlyViewedItems = useSelector((state: any) => {
         try { return state.recentlyViewed?.items || []; } catch (e) { return []; }
@@ -62,7 +64,7 @@ const UserProfile = () => {
 
     const isOwnProfile = currentUser && currentUser.username === username;
 
-    // 1. STANDALONE FETCH FUNCTION (For Refresh Button & UseEffect)
+    // 1. FETCH ORDERS LOGIC
     const fetchUserOrders = useCallback(async () => {
         const { auth } = await import("@/app/utils/firebase/firebase.utils");
         const firebaseUser = auth.currentUser;
@@ -79,87 +81,73 @@ const UserProfile = () => {
             const data = await response.json();
 
             if (!response.ok) {
-                if (data.errorType === "MISSING_INDEX") {
-                    toast.error("Database optimization in progress. Try refreshing in a moment.");
-                    if (data.link) console.error("FIX INDEX HERE:", data.link);
-                } else {
-                    toast.error(data.message || "Could not load orders.");
-                }
+                toast.error(data.message || "Could not load orders.");
                 return;
             }
 
             if (data.success) {
                 setOrders(data.orders);
-                if (data.orders.length > 0) toast.success("Orders updated");
             }
         } catch (error) {
-            console.error("Network error fetching orders:", error);
-            toast.error("Network error. Please try again.");
+            console.error("Orders fetch error:", error);
         } finally {
             setLoadingOrders(false);
         }
     }, [isOwnProfile]);
 
+    // 2. CONSOLIDATED USER DATA FETCHING (Strategy A, B, and C)
+    const fetchUserData = useCallback(async () => {
+        if (!username) return;
+
+        setLoading(true);
+        try {
+            const usersRef = collection(db, "users");
+            
+            // STRATEGY A: Search by 'username' field
+            const q = query(usersRef, where("username", "==", username));
+            const querySnapshot = await getDocs(q);
+
+            if (!querySnapshot.empty) {
+                const docSnap = querySnapshot.docs[0];
+                setUserData({ ...docSnap.data(), id: docSnap.id });
+                setEditFields(docSnap.data());
+            } else {
+                // STRATEGY B: Search by Document ID (UID)
+                const docRef = doc(db, "users", username);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    setUserData({ ...docSnap.data(), id: docSnap.id });
+                    setEditFields(docSnap.data());
+                } else if (currentUser && (currentUser.username === username || currentUser.uid === username)) {
+                    // STRATEGY C: Redux Fallback
+                    setUserData(currentUser);
+                    setEditFields(currentUser);
+                } else {
+                    setUserData(null);
+                }
+            }
+        } catch (error) {
+            console.error("Profile load error:", error);
+            toast.error("Failed to load profile.");
+        } finally {
+            setLoading(false);
+        }
+    }, [username, currentUser]);
+
+    // 3. LIFECYCLE
     useEffect(() => {
         setIsHydrated(true);
     }, []);
 
-    // 2. TRIGGER INITIAL FETCH
     useEffect(() => {
-        if (isHydrated && isOwnProfile) {
-            fetchUserOrders();
-        }
-    }, [isOwnProfile, isHydrated, fetchUserOrders]);
-
- useEffect(() => {
-        const fetchUserData = async () => {
-            // 1. Handle missing username in URL (e.g., user navigated to /profile instead of /profile/name)
-            if (!username || typeof username !== "string") {
-                if (currentUser) {
-                    setUserData(currentUser);
-                    setEditFields(currentUser);
-                }
-                setLoading(false);
-                return;
-            }
-
-            setLoading(true);
-            try {
-                console.log(`🔍 Searching Firestore for username: "${username}"`);
-                
-                const usersRef = collection(db, "users");
-                const q = query(usersRef, where("username", "==", username));
-                const querySnapshot = await getDocs(q);
-
-                if (!querySnapshot.empty) {
-                    const data = querySnapshot.docs[0].data();
-                    const docId = querySnapshot.docs[0].id;
-                    setUserData({ ...data, id: docId });
-                    setEditFields(data);
-                    console.log("✅ User found in database!");
-                } else {
-                    console.warn(`❌ No user found in database with username: "${username}"`);
-                    
-                    // BULLETPROOF FALLBACK: If the database misses but it's the logged-in user, use Redux
-                    if (currentUser && (currentUser.username === username || currentUser.uid === username)) {
-                        console.log("🔄 Falling back to Redux currentUser state.");
-                        setUserData(currentUser);
-                        setEditFields(currentUser);
-                    }
-                }
-            } catch (error) {
-                console.error("🔥 Profile fetch error:", error);
-                toast.error("Failed to load profile data.");
-            } finally {
-                setLoading(false);
-            }
-        };
-
         if (isHydrated) {
             fetchUserData();
+            if (isOwnProfile) fetchUserOrders();
         }
-    }, [username, currentUser, isHydrated]);
+    }, [isHydrated, fetchUserData, fetchUserOrders, isOwnProfile]);
 
+    // Handle Wishlist Scroll
     useEffect(() => {
         if (!loading && view === 'wishlist' && wishlistRef.current) {
             const timer = setTimeout(() => {
@@ -170,8 +158,7 @@ const UserProfile = () => {
     }, [view, loading]);
 
     const handleShare = () => {
-        const url = window.location.href;
-        navigator.clipboard.writeText(url);
+        navigator.clipboard.writeText(window.location.href);
         setCopied(true);
         toast.success("Profile link copied!");
         setTimeout(() => setCopied(false), 2000);
@@ -205,7 +192,15 @@ const UserProfile = () => {
         </div>
     );
 
-    if (!userData) return <div className="min-h-screen flex items-center justify-center">User not found.</div>;
+    if (!userData) return (
+        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
+            <h2 className="text-2xl font-bold text-slate-900 mb-2">User Not Found</h2>
+            <p className="text-slate-500 mb-6">The profile you are looking for doesn't exist or has been moved.</p>
+            <button onClick={() => router.push('/')} className="px-6 py-2 bg-slate-900 text-white rounded-full font-bold">
+                Go Home
+            </button>
+        </div>
+    );
 
     return (
         <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center font-sans antialiased">
