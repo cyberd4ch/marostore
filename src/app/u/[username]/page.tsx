@@ -6,7 +6,6 @@ import { selectCurrentUser } from "@/store/user/user.selector";
 import ProductCard from "@/components/ProductCard";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useParams, useRouter, useSearchParams } from "next/navigation";
-// ADDED: getDoc to the imports below
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { toast } from "sonner";
 import { db } from "@/app/utils/firebase/firebase.utils";
@@ -41,7 +40,6 @@ const UserProfile = () => {
     const dispatch = useDispatch();
     const searchParams = useSearchParams();
     const params = useParams();
-    // In Next.js 16, it's safer to access params like this in Client Components
     const username = params?.username as string;
 
     const wishlistRef = useRef<HTMLDivElement>(null);
@@ -62,12 +60,17 @@ const UserProfile = () => {
         try { return state.recentlyViewed?.items || []; } catch (e) { return []; }
     });
 
-    const isOwnProfile = currentUser && currentUser.username === username;
+    // FIX 1: Case-Insensitive Check
+    const isOwnProfile = !!currentUser && !!username && 
+        currentUser.username?.toLowerCase() === username?.toLowerCase();
 
     // 1. FETCH ORDERS LOGIC
     const fetchUserOrders = useCallback(async () => {
         const { auth } = await import("@/app/utils/firebase/firebase.utils");
         const firebaseUser = auth.currentUser;
+
+        // FIX 2: Debugging logs
+        console.log("Checking Order Permissions:", { isOwnProfile, uid: firebaseUser?.uid });
 
         if (!isOwnProfile || !firebaseUser?.uid) return;
 
@@ -75,13 +78,16 @@ const UserProfile = () => {
         try {
             const token = await firebaseUser.getIdToken();
             const response = await fetch(`/api/orders/user/${firebaseUser.uid}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 
+                    'Authorization': `Bearer ${token}`,
+                    'Cache-Control': 'no-cache' 
+                }
             });
             
             const data = await response.json();
 
             if (!response.ok) {
-                toast.error(data.message || "Could not load orders.");
+                console.error("Order fetch failed:", data.message);
                 return;
             }
 
@@ -89,21 +95,19 @@ const UserProfile = () => {
                 setOrders(data.orders);
             }
         } catch (error) {
-            console.error("Orders fetch error:", error);
+            console.error("Order Fetch Crash:", error);
         } finally {
             setLoadingOrders(false);
         }
-    }, [isOwnProfile]);
+    }, [isOwnProfile, currentUser?.uid]); // Use currentUser?.uid as dependency
 
-    // 2. CONSOLIDATED USER DATA FETCHING (Strategy A, B, and C)
+    // 2. CONSOLIDATED USER DATA FETCHING
     const fetchUserData = useCallback(async () => {
         if (!username) return;
 
         setLoading(true);
         try {
             const usersRef = collection(db, "users");
-            
-            // STRATEGY A: Search by 'username' field
             const q = query(usersRef, where("username", "==", username));
             const querySnapshot = await getDocs(q);
 
@@ -112,15 +116,13 @@ const UserProfile = () => {
                 setUserData({ ...docSnap.data(), id: docSnap.id });
                 setEditFields(docSnap.data());
             } else {
-                // STRATEGY B: Search by Document ID (UID)
                 const docRef = doc(db, "users", username);
                 const docSnap = await getDoc(docRef);
 
                 if (docSnap.exists()) {
                     setUserData({ ...docSnap.data(), id: docSnap.id });
                     setEditFields(docSnap.data());
-                } else if (currentUser && (currentUser.username === username || currentUser.uid === username)) {
-                    // STRATEGY C: Redux Fallback
+                } else if (isOwnProfile) {
                     setUserData(currentUser);
                     setEditFields(currentUser);
                 } else {
@@ -133,7 +135,7 @@ const UserProfile = () => {
         } finally {
             setLoading(false);
         }
-    }, [username, currentUser]);
+    }, [username, currentUser, isOwnProfile]);
 
     // 3. LIFECYCLE
     useEffect(() => {
@@ -143,11 +145,16 @@ const UserProfile = () => {
     useEffect(() => {
         if (isHydrated) {
             fetchUserData();
-            if (isOwnProfile) fetchUserOrders();
         }
-    }, [isHydrated, fetchUserData, fetchUserOrders, isOwnProfile]);
+    }, [isHydrated, fetchUserData]);
 
-    // Handle Wishlist Scroll
+    // Separated order fetch to trigger when auth/profile state is confirmed
+    useEffect(() => {
+        if (isHydrated && isOwnProfile) {
+            fetchUserOrders();
+        }
+    }, [isHydrated, isOwnProfile, fetchUserOrders]);
+
     useEffect(() => {
         if (!loading && view === 'wishlist' && wishlistRef.current) {
             const timer = setTimeout(() => {
@@ -213,7 +220,11 @@ const UserProfile = () => {
                         <UserIcon className="h-12 w-12 text-white" />
                     </div>
                     {isEditing ? (
-                        <Input value={editFields.displayName} onChange={(e) => setEditFields({ ...editFields, displayName: e.target.value })} className="text-center text-2xl font-bold bg-white border-slate-200 h-12 w-64 mx-auto mb-2" />
+                        <Input 
+                            value={editFields.displayName} 
+                            onChange={(e) => setEditFields({ ...editFields, displayName: e.target.value })} 
+                            className="text-center text-2xl font-bold bg-white border-slate-200 h-12 w-64 mx-auto mb-2" 
+                        />
                     ) : (
                         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{userData.displayName}</h1>
                     )}
@@ -238,7 +249,11 @@ const UserProfile = () => {
                                     <div className="p-4 bg-slate-50 rounded-2xl">
                                         <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Size</p>
                                         {isEditing ? (
-                                            <select value={editFields.clothingSize} onChange={(e) => setEditFields({ ...editFields, clothingSize: e.target.value })} className="w-full bg-transparent font-bold text-slate-900 outline-none">
+                                            <select 
+                                                value={editFields.clothingSize} 
+                                                onChange={(e) => setEditFields({ ...editFields, clothingSize: e.target.value })} 
+                                                className="w-full bg-transparent font-bold text-slate-900 outline-none"
+                                            >
                                                 {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
                                             </select>
                                         ) : (
@@ -248,7 +263,11 @@ const UserProfile = () => {
                                     <div className="p-4 bg-slate-50 rounded-2xl">
                                         <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Style</p>
                                         {isEditing ? (
-                                            <Input value={editFields.stylePreference} onChange={(e) => setEditFields({ ...editFields, stylePreference: e.target.value })} className="h-6 p-0 border-none bg-transparent font-bold text-slate-900 shadow-none focus-visible:ring-0" />
+                                            <Input 
+                                                value={editFields.stylePreference} 
+                                                onChange={(e) => setEditFields({ ...editFields, stylePreference: e.target.value })} 
+                                                className="h-6 p-0 border-none bg-transparent font-bold text-slate-900 shadow-none focus-visible:ring-0" 
+                                            />
                                         ) : (
                                             <p className="font-bold text-slate-900">{userData.stylePreference || 'Casual'}</p>
                                         )}
@@ -262,7 +281,11 @@ const UserProfile = () => {
                             <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Order History</h2>
-                                    <button onClick={fetchUserOrders} disabled={loadingOrders} className="p-2 hover:bg-slate-50 rounded-full transition-colors group disabled:opacity-50">
+                                    <button 
+                                        onClick={fetchUserOrders} 
+                                        disabled={loadingOrders} 
+                                        className="p-2 hover:bg-slate-50 rounded-full transition-colors group disabled:opacity-50"
+                                    >
                                         <RefreshCw size={14} className={`text-slate-400 group-hover:text-slate-900 transition-transform ${loadingOrders ? 'animate-spin' : ''}`} />
                                     </button>
                                 </div>
@@ -315,7 +338,11 @@ const UserProfile = () => {
 
                         {isOwnProfile && (
                             <div className="p-6 bg-slate-900">
-                                <button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={isSaving} className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all">
+                                <button 
+                                    onClick={isEditing ? handleSave : () => setIsEditing(true)} 
+                                    disabled={isSaving} 
+                                    className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
+                                >
                                     {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : isEditing ? <><Save size={16} /> Save Changes</> : <><Edit2 size={16} /> Edit Profile</>}
                                 </button>
                             </div>
