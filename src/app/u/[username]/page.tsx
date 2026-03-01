@@ -1,250 +1,208 @@
 "use client";
 
-import { useSelector, useDispatch } from "react-redux";
+import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import ProductCard from "@/components/ProductCard";
-import { useEffect, useState, useRef, useCallback } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState, useCallback } from "react";
+import { useParams, useRouter } from "next/navigation";
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
 import { toast } from "sonner";
-import { db } from "@/app/utils/firebase/firebase.utils";
+import { db, auth } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import {
-    Loader2, User as UserIcon, Save, X, Edit2,
-    Share2, Check, RefreshCw, Heart
-} from "lucide-react";
-
-import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
-
-const OrderSkeleton = () => (
-    <div className="space-y-4 animate-pulse p-4">
-        {[1, 2].map((i) => (
-            <div key={i} className="h-16 bg-slate-100 rounded-xl" />
-        ))}
-    </div>
-);
+import { Loader2, User as UserIcon, Save, X, Edit2, Share2, Check, RefreshCw, Heart, Package } from "lucide-react";
 
 const UserProfile = () => {
     const router = useRouter();
-    const dispatch = useDispatch();
-    const searchParams = useSearchParams();
     const params = useParams();
     const username = params?.username as string;
-
-    const [copied, setCopied] = useState(false);
-    const [userData, setUserData] = useState<any>(null);
-    const [loading, setLoading] = useState(true);
-    const [isEditing, setIsEditing] = useState(false);
-    const [isSaving, setIsSaving] = useState(false);
-    const [orders, setOrders] = useState<any[]>([]);
-    const [loadingOrders, setLoadingOrders] = useState(false);
-    const [isHydrated, setIsHydrated] = useState(false);
-    const [editFields, setEditFields] = useState<any>({});
-
     const currentUser = useSelector(selectCurrentUser);
-    const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
 
-    // FIX 1: Robust Case-Insensitive Owner Check
-    const isOwnProfile = !!currentUser && !!username && 
-        currentUser.username?.toLowerCase() === username.toLowerCase();
+    const [userData, setUserData] = useState<any>(null);
+    const [orders, setOrders] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [loadingOrders, setLoadingOrders] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editFields, setEditFields] = useState<any>({});
+    const [copied, setCopied] = useState(false);
 
-    // 1. FETCH ORDERS (Owner Only)
+    // 1. Identify if viewer is owner
+    // We check both username and the underlying UID for safety
+    const isOwnProfile = !!currentUser && (
+        currentUser.username?.toLowerCase() === username?.toLowerCase() || 
+        currentUser.uid === userData?.id
+    );
+
+    // 2. Optimized Order Fetcher
     const fetchUserOrders = useCallback(async (uid: string) => {
-        if (!isOwnProfile) return;
-        
+        if (!uid) return;
         setLoadingOrders(true);
         try {
-            const { auth } = await import("@/app/utils/firebase/firebase.utils");
-            const token = await auth.currentUser?.getIdToken();
-            
+            const idToken = await auth.currentUser?.getIdToken(true);
             const response = await fetch(`/api/orders/user/${uid}`, {
-                headers: { 
-                    'Authorization': `Bearer ${token}`,
-                    'Cache-Control': 'no-cache'
-                }
+                headers: { 'Authorization': `Bearer ${idToken}` }
             });
             const data = await response.json();
             if (data.success) {
                 setOrders(data.orders);
             }
         } catch (error) {
-            console.error("Orders error:", error);
+            console.error("Order fetch failed:", error);
         } finally {
             setLoadingOrders(false);
         }
-    }, [isOwnProfile]);
+    }, []);
 
-    // 2. FETCH PROFILE DATA
-    const fetchProfileData = useCallback(async () => {
+    // 3. Robust Profile Fetcher
+    const fetchProfile = useCallback(async () => {
         if (!username) return;
         setLoading(true);
         try {
             const usersRef = collection(db, "users");
             const q = query(usersRef, where("username", "==", username));
-            const querySnapshot = await getDocs(q);
+            const snap = await getDocs(q);
 
-            let profileData = null;
-
-            if (!querySnapshot.empty) {
-                const docSnap = querySnapshot.docs[0];
-                profileData = { ...docSnap.data(), id: docSnap.id };
+            let data = null;
+            if (!snap.empty) {
+                data = { ...snap.docs[0].data(), id: snap.docs[0].id };
             } else {
-                // Fallback to UID direct doc search
+                // Try fetching by ID directly if username search fails
                 const docRef = doc(db, "users", username);
                 const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) profileData = { ...docSnap.data(), id: docSnap.id };
+                if (docSnap.exists()) data = { ...docSnap.data(), id: docSnap.id };
             }
 
-            if (profileData) {
-                setUserData(profileData);
-                setEditFields(profileData);
-                
-                // If this is the logged-in user's profile, trigger order fetch
-                if (isOwnProfile || currentUser?.uid === profileData.id) {
-                    fetchUserOrders(profileData.id);
+            if (data) {
+                setUserData(data);
+                setEditFields(data);
+                // Immediately fetch orders if viewer is owner
+                if (currentUser?.uid === data.id) {
+                    fetchUserOrders(data.id);
                 }
-            } else {
-                setUserData(null);
             }
-        } catch (error) {
-            console.error("Load error:", error);
-            toast.error("Error loading profile");
+        } catch (e) {
+            toast.error("Failed to load profile");
         } finally {
             setLoading(false);
         }
-    }, [username, isOwnProfile, currentUser?.uid, fetchUserOrders]);
+    }, [username, currentUser?.uid, fetchUserOrders]);
 
-    // 3. LIFECYCLE
-    useEffect(() => {
-        setIsHydrated(true);
-        fetchProfileData();
-    }, [fetchProfileData]);
-
-    const handleShare = () => {
-        navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        toast.success("Profile link copied!");
-        setTimeout(() => setCopied(false), 2000);
-    };
+    useEffect(() => { fetchProfile(); }, [fetchProfile]);
 
     const handleSave = async () => {
         if (!userData?.id) return;
-        setIsSaving(true);
-        const loadingToast = toast.loading("Saving changes...");
+        const toastId = toast.loading("Saving...");
         try {
-            const userDocRef = doc(db, "users", userData.id);
-            await updateDoc(userDocRef, editFields);
-            setUserData({ ...editFields, id: userData.id });
+            await updateDoc(doc(db, "users", userData.id), editFields);
+            setUserData({ ...editFields });
             setIsEditing(false);
-            toast.success("Profile updated!", { id: loadingToast });
-        } catch (error) {
-            toast.error("Update failed.", { id: loadingToast });
-        } finally {
-            setIsSaving(false);
+            toast.success("Updated!", { id: toastId });
+        } catch (e) {
+            toast.error("Save failed", { id: toastId });
         }
     };
 
-    if (loading) return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50">
-            <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
-        </div>
-    );
-
-    if (!userData) return (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
-            <h2 className="text-2xl font-bold text-slate-900 mb-2">User Not Found</h2>
-            <p className="text-slate-500 mb-6">The profile you are looking for doesn't exist.</p>
-            <button onClick={() => router.push('/')} className="px-6 py-2 bg-slate-900 text-white rounded-full font-bold">Go Home</button>
-        </div>
-    );
+    if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
+    if (!userData) return <div className="p-20 text-center">User not found.</div>;
 
     return (
-        <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center font-sans antialiased">
-            <div className="w-full max-w-xl relative">
-                {/* Header */}
-                <div className="flex flex-col items-center mb-8 text-center relative">
-                    <button onClick={handleShare} className="absolute right-0 top-0 p-3 bg-white rounded-full shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
-                        {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} className="text-slate-600" />}
-                    </button>
-                    <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mb-4 shadow-xl">
-                        <UserIcon className="h-12 w-12 text-white" />
+        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
+            <div className="max-w-2xl mx-auto space-y-6">
+                
+                {/* Profile Header */}
+                <div className="flex flex-col items-center text-center space-y-4">
+                    <div className="relative">
+                        <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center text-white">
+                            <UserIcon size={40} />
+                        </div>
+                        <button 
+                            onClick={() => {
+                                navigator.clipboard.writeText(window.location.href);
+                                setCopied(true);
+                                setTimeout(() => setCopied(false), 2000);
+                                toast.success("Link copied");
+                            }}
+                            className="absolute -right-2 -top-2 p-2 bg-white shadow-md rounded-full"
+                        >
+                            {copied ? <Check size={14} className="text-green-500" /> : <Share2 size={14} />}
+                        </button>
                     </div>
-                    {isEditing ? (
-                        <Input value={editFields.displayName} onChange={(e) => setEditFields({ ...editFields, displayName: e.target.value })} className="text-center text-2xl font-bold bg-white border-slate-200 h-12 w-64 mx-auto mb-2" />
-                    ) : (
-                        <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{userData.displayName}</h1>
-                    )}
-                    <p className="text-slate-500 font-medium">@{userData.username}</p>
+
+                    <div>
+                        {isEditing ? (
+                            <Input 
+                                value={editFields.displayName} 
+                                onChange={e => setEditFields({...editFields, displayName: e.target.value})}
+                                className="text-center font-bold text-xl"
+                            />
+                        ) : (
+                            <h1 className="text-2xl font-bold">{userData.displayName}</h1>
+                        )}
+                        <p className="text-slate-500">@{userData.username}</p>
+                    </div>
                 </div>
 
-                <Card className="border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.12)] rounded-[2.5rem] bg-white overflow-hidden">
+                <Card className="rounded-[2rem] overflow-hidden border-none shadow-sm">
                     <CardContent className="p-0">
-                        {/* Tab-like header */}
-                        <div className="w-full bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex justify-between items-center">
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Activity & Preferences</span>
-                            {isEditing && <button onClick={() => setIsEditing(false)}><X size={18} className="text-slate-400" /></button>}
-                        </div>
-
-                        {/* Liked Items (Reads from profile owner's data) */}
-                        <div className="p-8 border-b border-slate-100">
-                            <div className="flex items-center gap-2 mb-6">
-                                <Heart size={16} className="text-rose-500 fill-rose-500" />
-                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wishlist</h2>
+                        {/* Wishlist Section */}
+                        <div className="p-6 border-b">
+                            <div className="flex items-center gap-2 mb-4">
+                                <Heart size={18} className="text-rose-500 fill-rose-500" />
+                                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Wishlist</h2>
                             </div>
                             
-                            {userData.wishlist && userData.wishlist.length > 0 ? (
+                            {userData.wishlist?.length > 0 ? (
                                 <div className="grid grid-cols-2 gap-4">
-                                    {userData.wishlist.map((product: any) => (
-                                        <ProductCard key={product.id} product={product} compact={true} />
+                                    {userData.wishlist.map((item: any) => (
+                                        <ProductCard key={item.id} product={item} compact />
                                     ))}
                                 </div>
                             ) : (
-                                <div className="text-center py-8 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
-                                    <p className="text-xs text-slate-400 italic font-medium">No liked items to show.</p>
-                                </div>
+                                <p className="text-sm text-slate-400 text-center py-4">Wishlist is empty</p>
                             )}
                         </div>
 
                         {/* Order History (Owner Only) */}
-                        {isOwnProfile && isHydrated && (
-                            <div className="p-8 bg-slate-50/50 border-b border-slate-100">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Order History</h2>
-                                    <button onClick={() => fetchUserOrders(userData.id)} disabled={loadingOrders}>
-                                        <RefreshCw size={14} className={`text-slate-400 ${loadingOrders ? 'animate-spin' : ''}`} />
+                        {isOwnProfile && (
+                            <div className="p-6 bg-slate-50/50">
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2">
+                                        <Package size={18} className="text-blue-500" />
+                                        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Order History</h2>
+                                    </div>
+                                    <button onClick={() => fetchUserOrders(userData.id)}>
+                                        <RefreshCw size={14} className={loadingOrders ? "animate-spin" : ""} />
                                     </button>
                                 </div>
 
-                                {loadingOrders ? <OrderSkeleton /> : orders.length > 0 ? (
-                                    <div className="space-y-3">
-                                        {orders.map((order) => (
-                                            <div key={order.id} className="p-4 bg-white rounded-2xl flex justify-between items-center shadow-sm">
-                                                <div>
-                                                    <p className="text-[10px] font-black uppercase tracking-tighter text-slate-900">ORD-{order.id.slice(-6).toUpperCase()}</p>
-                                                    <p className="text-[9px] text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</p>
-                                                </div>
-                                                <p className="text-sm font-black text-blue-600">₵{order.totalAmount?.toFixed(2)}</p>
+                                <div className="space-y-3">
+                                    {orders.length > 0 ? orders.map(order => (
+                                        <div key={order.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
+                                            <div>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Order ID</p>
+                                                <p className="text-xs font-bold">#{order.id.slice(-6).toUpperCase()}</p>
                                             </div>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="text-center py-6">
-                                        <p className="text-xs text-slate-400 italic">No previous orders.</p>
-                                    </div>
-                                )}
+                                            <div className="text-right">
+                                                <p className="text-sm font-bold text-blue-600">₵{order.totalAmount}</p>
+                                                <p className="text-[10px] text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                            </div>
+                                        </div>
+                                    )) : !loadingOrders && (
+                                        <p className="text-sm text-slate-400 text-center py-4">No orders yet</p>
+                                    )}
+                                    {loadingOrders && <Loader2 className="animate-spin mx-auto text-slate-300" />}
+                                </div>
                             </div>
                         )}
 
-                        {/* Action Bar */}
+                        {/* Edit Action */}
                         {isOwnProfile && (
-                            <div className="p-6 bg-slate-900">
+                            <div className="p-4 bg-slate-900">
                                 <button 
-                                    onClick={isEditing ? handleSave : () => setIsEditing(true)} 
-                                    disabled={isSaving}
-                                    className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
+                                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
+                                    className="w-full text-white text-sm font-bold flex items-center justify-center gap-2"
                                 >
-                                    {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : isEditing ? <><Save size={16} /> Save Changes</> : <><Edit2 size={16} /> Edit Profile</>}
+                                    {isEditing ? <><Save size={16}/> Save Changes</> : <><Edit2 size={16}/> Edit Profile</>}
                                 </button>
                             </div>
                         )}
