@@ -1,7 +1,6 @@
 "use client";
 
 import { useSelector, useDispatch } from "react-redux";
-import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import ProductCard from "@/components/ProductCard";
 import { useEffect, useState, useRef, useCallback } from "react";
@@ -13,24 +12,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
     Loader2, User as UserIcon, Save, X, Edit2,
-    Share2, Check, RefreshCw 
+    Share2, Check, RefreshCw, Heart
 } from "lucide-react";
 
 import { clearRecentlyViewed } from "@/store/recently-viewed/recently-viewed.reducer";
 
 const OrderSkeleton = () => (
-    <div className="space-y-4 animate-pulse">
-        {[1, 2, 3].map((i) => (
-            <div key={i} className="p-4 bg-slate-50 rounded-2xl flex justify-between items-center">
-                <div className="space-y-2">
-                    <div className="h-3 w-24 bg-slate-200 rounded shadow-sm" />
-                    <div className="h-2 w-16 bg-slate-200 rounded shadow-sm" />
-                </div>
-                <div className="flex flex-col items-end space-y-2">
-                    <div className="h-4 w-12 bg-slate-200 rounded shadow-sm" />
-                    <div className="h-3 w-10 bg-slate-200 rounded-full shadow-sm" />
-                </div>
-            </div>
+    <div className="space-y-4 animate-pulse p-4">
+        {[1, 2].map((i) => (
+            <div key={i} className="h-16 bg-slate-100 rounded-xl" />
         ))}
     </div>
 );
@@ -41,9 +31,6 @@ const UserProfile = () => {
     const searchParams = useSearchParams();
     const params = useParams();
     const username = params?.username as string;
-
-    const wishlistRef = useRef<HTMLDivElement>(null);
-    const view = searchParams.get('view');
 
     const [copied, setCopied] = useState(false);
     const [userData, setUserData] = useState<any>(null);
@@ -56,113 +43,83 @@ const UserProfile = () => {
     const [editFields, setEditFields] = useState<any>({});
 
     const currentUser = useSelector(selectCurrentUser);
-    const recentlyViewedItems = useSelector((state: any) => {
-        try { return state.recentlyViewed?.items || []; } catch (e) { return []; }
-    });
+    const recentlyViewedItems = useSelector((state: any) => state.recentlyViewed?.items || []);
 
-    // FIX 1: Case-Insensitive Check
+    // FIX 1: Robust Case-Insensitive Owner Check
     const isOwnProfile = !!currentUser && !!username && 
-        currentUser.username?.toLowerCase() === username?.toLowerCase();
+        currentUser.username?.toLowerCase() === username.toLowerCase();
 
-    // 1. FETCH ORDERS LOGIC
-    const fetchUserOrders = useCallback(async () => {
-        const { auth } = await import("@/app/utils/firebase/firebase.utils");
-        const firebaseUser = auth.currentUser;
-
-        // FIX 2: Debugging logs
-        console.log("Checking Order Permissions:", { isOwnProfile, uid: firebaseUser?.uid });
-
-        if (!isOwnProfile || !firebaseUser?.uid) return;
-
+    // 1. FETCH ORDERS (Owner Only)
+    const fetchUserOrders = useCallback(async (uid: string) => {
+        if (!isOwnProfile) return;
+        
         setLoadingOrders(true);
         try {
-            const token = await firebaseUser.getIdToken();
-            const response = await fetch(`/api/orders/user/${firebaseUser.uid}`, {
+            const { auth } = await import("@/app/utils/firebase/firebase.utils");
+            const token = await auth.currentUser?.getIdToken();
+            
+            const response = await fetch(`/api/orders/user/${uid}`, {
                 headers: { 
                     'Authorization': `Bearer ${token}`,
-                    'Cache-Control': 'no-cache' 
+                    'Cache-Control': 'no-cache'
                 }
             });
-            
             const data = await response.json();
-
-            if (!response.ok) {
-                console.error("Order fetch failed:", data.message);
-                return;
-            }
-
             if (data.success) {
                 setOrders(data.orders);
             }
         } catch (error) {
-            console.error("Order Fetch Crash:", error);
+            console.error("Orders error:", error);
         } finally {
             setLoadingOrders(false);
         }
-    }, [isOwnProfile, currentUser?.uid]); // Use currentUser?.uid as dependency
+    }, [isOwnProfile]);
 
-    // 2. CONSOLIDATED USER DATA FETCHING
-    const fetchUserData = useCallback(async () => {
+    // 2. FETCH PROFILE DATA
+    const fetchProfileData = useCallback(async () => {
         if (!username) return;
-
         setLoading(true);
         try {
             const usersRef = collection(db, "users");
             const q = query(usersRef, where("username", "==", username));
             const querySnapshot = await getDocs(q);
 
+            let profileData = null;
+
             if (!querySnapshot.empty) {
                 const docSnap = querySnapshot.docs[0];
-                setUserData({ ...docSnap.data(), id: docSnap.id });
-                setEditFields(docSnap.data());
+                profileData = { ...docSnap.data(), id: docSnap.id };
             } else {
+                // Fallback to UID direct doc search
                 const docRef = doc(db, "users", username);
                 const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) profileData = { ...docSnap.data(), id: docSnap.id };
+            }
 
-                if (docSnap.exists()) {
-                    setUserData({ ...docSnap.data(), id: docSnap.id });
-                    setEditFields(docSnap.data());
-                } else if (isOwnProfile) {
-                    setUserData(currentUser);
-                    setEditFields(currentUser);
-                } else {
-                    setUserData(null);
+            if (profileData) {
+                setUserData(profileData);
+                setEditFields(profileData);
+                
+                // If this is the logged-in user's profile, trigger order fetch
+                if (isOwnProfile || currentUser?.uid === profileData.id) {
+                    fetchUserOrders(profileData.id);
                 }
+            } else {
+                setUserData(null);
             }
         } catch (error) {
-            console.error("Profile load error:", error);
-            toast.error("Failed to load profile.");
+            console.error("Load error:", error);
+            toast.error("Error loading profile");
         } finally {
             setLoading(false);
         }
-    }, [username, currentUser, isOwnProfile]);
+    }, [username, isOwnProfile, currentUser?.uid, fetchUserOrders]);
 
     // 3. LIFECYCLE
     useEffect(() => {
         setIsHydrated(true);
-    }, []);
-
-    useEffect(() => {
-        if (isHydrated) {
-            fetchUserData();
-        }
-    }, [isHydrated, fetchUserData]);
-
-    // Separated order fetch to trigger when auth/profile state is confirmed
-    useEffect(() => {
-        if (isHydrated && isOwnProfile) {
-            fetchUserOrders();
-        }
-    }, [isHydrated, isOwnProfile, fetchUserOrders]);
-
-    useEffect(() => {
-        if (!loading && view === 'wishlist' && wishlistRef.current) {
-            const timer = setTimeout(() => {
-                wishlistRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-            }, 600);
-            return () => clearTimeout(timer);
-        }
-    }, [view, loading]);
+        fetchProfileData();
+    }, [fetchProfileData]);
 
     const handleShare = () => {
         navigator.clipboard.writeText(window.location.href);
@@ -188,11 +145,6 @@ const UserProfile = () => {
         }
     };
 
-    const handleClearHistory = () => {
-        dispatch(clearRecentlyViewed());
-        toast.success("Browsing history cleared");
-    };
-
     if (loading) return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50">
             <Loader2 className="h-10 w-10 animate-spin text-slate-900" />
@@ -202,16 +154,15 @@ const UserProfile = () => {
     if (!userData) return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 p-6 text-center">
             <h2 className="text-2xl font-bold text-slate-900 mb-2">User Not Found</h2>
-            <p className="text-slate-500 mb-6">The profile you are looking for doesn't exist or has been moved.</p>
-            <button onClick={() => router.push('/')} className="px-6 py-2 bg-slate-900 text-white rounded-full font-bold">
-                Go Home
-            </button>
+            <p className="text-slate-500 mb-6">The profile you are looking for doesn't exist.</p>
+            <button onClick={() => router.push('/')} className="px-6 py-2 bg-slate-900 text-white rounded-full font-bold">Go Home</button>
         </div>
     );
 
     return (
         <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center font-sans antialiased">
             <div className="w-full max-w-xl relative">
+                {/* Header */}
                 <div className="flex flex-col items-center mb-8 text-center relative">
                     <button onClick={handleShare} className="absolute right-0 top-0 p-3 bg-white rounded-full shadow-sm border border-slate-200 hover:bg-slate-50 transition-all active:scale-95">
                         {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} className="text-slate-600" />}
@@ -220,11 +171,7 @@ const UserProfile = () => {
                         <UserIcon className="h-12 w-12 text-white" />
                     </div>
                     {isEditing ? (
-                        <Input 
-                            value={editFields.displayName} 
-                            onChange={(e) => setEditFields({ ...editFields, displayName: e.target.value })} 
-                            className="text-center text-2xl font-bold bg-white border-slate-200 h-12 w-64 mx-auto mb-2" 
-                        />
+                        <Input value={editFields.displayName} onChange={(e) => setEditFields({ ...editFields, displayName: e.target.value })} className="text-center text-2xl font-bold bg-white border-slate-200 h-12 w-64 mx-auto mb-2" />
                     ) : (
                         <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">{userData.displayName}</h1>
                     )}
@@ -233,114 +180,68 @@ const UserProfile = () => {
 
                 <Card className="border-none shadow-[0_30px_60px_-12px_rgba(0,0,0,0.12)] rounded-[2.5rem] bg-white overflow-hidden">
                     <CardContent className="p-0">
-                        <div className="w-full bg-slate-50/50 px-8 py-6 border-b border-slate-100 flex justify-between items-center">
-                            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Profile Details</span>
-                            {isEditing && (
-                                <button onClick={() => setIsEditing(false)} className="text-slate-400 hover:text-slate-600">
-                                    <X size={18} />
-                                </button>
+                        {/* Tab-like header */}
+                        <div className="w-full bg-slate-50/50 px-8 py-4 border-b border-slate-100 flex justify-between items-center">
+                            <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Activity & Preferences</span>
+                            {isEditing && <button onClick={() => setIsEditing(false)}><X size={18} className="text-slate-400" /></button>}
+                        </div>
+
+                        {/* Liked Items (Reads from profile owner's data) */}
+                        <div className="p-8 border-b border-slate-100">
+                            <div className="flex items-center gap-2 mb-6">
+                                <Heart size={16} className="text-rose-500 fill-rose-500" />
+                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wishlist</h2>
+                            </div>
+                            
+                            {userData.wishlist && userData.wishlist.length > 0 ? (
+                                <div className="grid grid-cols-2 gap-4">
+                                    {userData.wishlist.map((product: any) => (
+                                        <ProductCard key={product.id} product={product} compact={true} />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="text-center py-8 bg-slate-50 rounded-3xl border border-dashed border-slate-200">
+                                    <p className="text-xs text-slate-400 italic font-medium">No liked items to show.</p>
+                                </div>
                             )}
                         </div>
 
-                        <div className="p-8 md:p-10 space-y-8">
-                            <div className="space-y-4">
-                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Fashion Preferences</h2>
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Size</p>
-                                        {isEditing ? (
-                                            <select 
-                                                value={editFields.clothingSize} 
-                                                onChange={(e) => setEditFields({ ...editFields, clothingSize: e.target.value })} 
-                                                className="w-full bg-transparent font-bold text-slate-900 outline-none"
-                                            >
-                                                {['XS', 'S', 'M', 'L', 'XL', 'XXL'].map(s => <option key={s} value={s}>{s}</option>)}
-                                            </select>
-                                        ) : (
-                                            <p className="font-bold text-slate-900">{userData.clothingSize || 'Not Set'}</p>
-                                        )}
-                                    </div>
-                                    <div className="p-4 bg-slate-50 rounded-2xl">
-                                        <p className="text-[10px] text-slate-400 uppercase font-bold mb-1">Style</p>
-                                        {isEditing ? (
-                                            <Input 
-                                                value={editFields.stylePreference} 
-                                                onChange={(e) => setEditFields({ ...editFields, stylePreference: e.target.value })} 
-                                                className="h-6 p-0 border-none bg-transparent font-bold text-slate-900 shadow-none focus-visible:ring-0" 
-                                            />
-                                        ) : (
-                                            <p className="font-bold text-slate-900">{userData.stylePreference || 'Casual'}</p>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* ORDER HISTORY SECTION */}
+                        {/* Order History (Owner Only) */}
                         {isOwnProfile && isHydrated && (
-                            <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
+                            <div className="p-8 bg-slate-50/50 border-b border-slate-100">
                                 <div className="flex items-center justify-between mb-6">
                                     <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Order History</h2>
-                                    <button 
-                                        onClick={fetchUserOrders} 
-                                        disabled={loadingOrders} 
-                                        className="p-2 hover:bg-slate-50 rounded-full transition-colors group disabled:opacity-50"
-                                    >
-                                        <RefreshCw size={14} className={`text-slate-400 group-hover:text-slate-900 transition-transform ${loadingOrders ? 'animate-spin' : ''}`} />
+                                    <button onClick={() => fetchUserOrders(userData.id)} disabled={loadingOrders}>
+                                        <RefreshCw size={14} className={`text-slate-400 ${loadingOrders ? 'animate-spin' : ''}`} />
                                     </button>
                                 </div>
 
-                                {loadingOrders && orders.length === 0 ? (
-                                    <OrderSkeleton />
-                                ) : orders.length > 0 ? (
-                                    <div className="space-y-4">
+                                {loadingOrders ? <OrderSkeleton /> : orders.length > 0 ? (
+                                    <div className="space-y-3">
                                         {orders.map((order) => (
-                                            <div key={order.id} className="p-4 bg-slate-50 rounded-2xl flex justify-between items-center transition-all hover:bg-slate-100">
+                                            <div key={order.id} className="p-4 bg-white rounded-2xl flex justify-between items-center shadow-sm">
                                                 <div>
-                                                    <p className="text-xs font-black uppercase italic tracking-tighter text-slate-900">Order #{order.orderReference?.slice(-6) || "N/A"}</p>
-                                                    <p className="text-[10px] text-slate-500">{order.createdAt ? new Date(order.createdAt).toLocaleDateString() : ""}</p>
+                                                    <p className="text-[10px] font-black uppercase tracking-tighter text-slate-900">ORD-{order.id.slice(-6).toUpperCase()}</p>
+                                                    <p className="text-[9px] text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</p>
                                                 </div>
-                                                <div className="text-right">
-                                                    <p className="text-sm font-black text-blue-600">₵{order.totalAmount?.toFixed(2) || "0.00"}</p>
-                                                    <span className="text-[9px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full font-bold uppercase">{order.paymentStatus || "Paid"}</span>
-                                                </div>
+                                                <p className="text-sm font-black text-blue-600">₵{order.totalAmount?.toFixed(2)}</p>
                                             </div>
                                         ))}
                                     </div>
                                 ) : (
-                                    <div className="text-center py-6 bg-slate-50 rounded-2xl border border-dashed border-slate-200">
-                                        <p className="text-xs text-slate-400 italic font-medium">No orders found yet.</p>
+                                    <div className="text-center py-6">
+                                        <p className="text-xs text-slate-400 italic">No previous orders.</p>
                                     </div>
                                 )}
                             </div>
                         )}
 
-                        {/* Recently Viewed */}
-                        {isHydrated && recentlyViewedItems.length > 0 && (
-                            <div className="p-8 md:p-10 border-t border-slate-100 bg-white">
-                                <div className="flex items-center justify-between mb-6">
-                                    <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Recently Viewed</h2>
-                                    {isOwnProfile && (
-                                        <button onClick={handleClearHistory} className="p-2 bg-slate-50 rounded-full hover:bg-slate-100">
-                                            <X size={12} className="text-slate-400" />
-                                        </button>
-                                    )}
-                                </div>
-                                <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-hide">
-                                    {recentlyViewedItems.map((product: any) => (
-                                        <div key={`recent-${product.id}`} className="min-w-[140px] w-[140px] flex-shrink-0">
-                                            <ProductCard product={product} compact={true} />
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
+                        {/* Action Bar */}
                         {isOwnProfile && (
                             <div className="p-6 bg-slate-900">
                                 <button 
                                     onClick={isEditing ? handleSave : () => setIsEditing(true)} 
-                                    disabled={isSaving} 
+                                    disabled={isSaving}
                                     className="flex items-center justify-center gap-2 w-full text-white text-sm font-bold active:scale-95 transition-all"
                                 >
                                     {isSaving ? <Loader2 className="animate-spin h-4 w-4" /> : isEditing ? <><Save size={16} /> Save Changes</> : <><Edit2 size={16} /> Edit Profile</>}
