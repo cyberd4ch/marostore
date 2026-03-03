@@ -2,22 +2,34 @@
 
 import { useSelector } from "react-redux";
 import { selectCurrentUser } from "@/store/user/user.selector";
+import { selectWishlistItems } from "@/store/wishlist/wishlist.selector";
 import ProductCard from "@/components/ProductCard";
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { db, auth } from "@/app/utils/firebase/firebase.utils";
+import { db, auth, storage } from "@/app/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Loader2, User as UserIcon, Save, X, Edit2, Share2, Check, RefreshCw, Heart, Package } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea"; 
+import Image from "next/image";
+import { 
+    Loader2, User as UserIcon, Save, Edit2, 
+    Share2, Check, RefreshCw, Heart, Package, LogOut, Camera 
+} from "lucide-react";
 
 const UserProfile = () => {
-    const router = useRouter();
     const params = useParams();
+    const router = useRouter();
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const username = params?.username as string;
+    
     const currentUser = useSelector(selectCurrentUser);
+    const reduxWishlist = useSelector(selectWishlistItems);
 
+    // Using 'any' for the state to bypass strict property checks on the dynamic Firestore object
     const [userData, setUserData] = useState<any>(null);
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,17 +37,44 @@ const UserProfile = () => {
     const [isEditing, setIsEditing] = useState(false);
     const [editFields, setEditFields] = useState<any>({});
     const [copied, setCopied] = useState(false);
+    const [isSaving, setIsSaving] = useState(false);
+    const [isSyncing, setIsSyncing] = useState(false);
+    const [isUploading, setIsUploading] = useState(false);
 
-    // 1. Identify if viewer is owner
-    // We check both username and the underlying UID for safety
-    const isOwnProfile = !!currentUser && (
-        currentUser.username?.toLowerCase() === username?.toLowerCase() || 
-        currentUser.uid === userData?.id
-    );
+    const isOwnProfile = !!currentUser && !!username && 
+        currentUser.username?.toLowerCase() === username.toLowerCase();
 
-    // 2. Optimized Order Fetcher
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !userData?.id) return;
+        if (!file.type.startsWith('image/')) {
+            toast.error("Please upload an image file");
+            return;
+        }
+
+        setIsUploading(true);
+        const storageRef = ref(storage, `avatars/${userData.id}`);
+        try {
+            const snapshot = await uploadBytes(storageRef, file);
+            const downloadURL = await getDownloadURL(snapshot.ref);
+            await updateDoc(doc(db, "users", userData.id), { photoURL: downloadURL });
+            setUserData((prev: any) => ({ ...prev, photoURL: downloadURL }));
+            toast.success("Photo updated!");
+        } catch (error) {
+            toast.error("Upload failed");
+        } finally { setIsUploading(false); }
+    };
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            toast.success("Logged out");
+            router.push("/auth");
+        } catch (error) { toast.error("Error signing out"); }
+    };
+
     const fetchUserOrders = useCallback(async (uid: string) => {
-        if (!uid) return;
+        if (!isOwnProfile) return;
         setLoadingOrders(true);
         try {
             const idToken = await auth.currentUser?.getIdToken(true);
@@ -43,18 +82,22 @@ const UserProfile = () => {
                 headers: { 'Authorization': `Bearer ${idToken}` }
             });
             const data = await response.json();
-            if (data.success) {
-                setOrders(data.orders);
-            }
-        } catch (error) {
-            console.error("Order fetch failed:", error);
-        } finally {
-            setLoadingOrders(false);
-        }
-    }, []);
+            if (data.success) setOrders(data.orders);
+        } catch (error) { console.error(error); } finally { setLoadingOrders(false); }
+    }, [isOwnProfile]);
 
-    // 3. Robust Profile Fetcher
-    const fetchProfile = useCallback(async () => {
+    const syncWishlistToFirestore = useCallback(async (currentId: string, currentWishlist: any[]) => {
+        if (isOwnProfile && reduxWishlist.length > 0 && (!currentWishlist || currentWishlist.length === 0) && !isSyncing) {
+            setIsSyncing(true);
+            try {
+                const userDocRef = doc(db, "users", currentId);
+                await updateDoc(userDocRef, { wishlist: reduxWishlist });
+                setUserData((prev: any) => ({ ...prev, wishlist: reduxWishlist }));
+            } catch (error) { console.error(error); } finally { setIsSyncing(false); }
+        }
+    }, [isOwnProfile, reduxWishlist, isSyncing]);
+
+    const fetchProfileData = useCallback(async () => {
         if (!username) return;
         setLoading(true);
         try {
@@ -62,147 +105,146 @@ const UserProfile = () => {
             const q = query(usersRef, where("username", "==", username));
             const snap = await getDocs(q);
 
-            let data = null;
+            let profileData: any = null; // Explicitly cast to any to avoid property errors
             if (!snap.empty) {
-                data = { ...snap.docs[0].data(), id: snap.docs[0].id };
+                profileData = { ...snap.docs[0].data(), id: snap.docs[0].id };
             } else {
-                // Try fetching by ID directly if username search fails
                 const docRef = doc(db, "users", username);
                 const docSnap = await getDoc(docRef);
-                if (docSnap.exists()) data = { ...docSnap.data(), id: docSnap.id };
+                if (docSnap.exists()) profileData = { ...docSnap.data(), id: docSnap.id };
             }
 
-            if (data) {
-                setUserData(data);
-                setEditFields(data);
-                // Immediately fetch orders if viewer is owner
-                if (currentUser?.uid === data.id) {
-                    fetchUserOrders(data.id);
+            if (profileData) {
+                setUserData(profileData);
+                setEditFields(profileData);
+                if (isOwnProfile || currentUser?.uid === profileData.id) {
+                    fetchUserOrders(profileData.id);
                 }
+                // Pass wishlist explicitly from the fetched object
+                syncWishlistToFirestore(profileData.id, profileData.wishlist || []);
             }
-        } catch (e) {
-            toast.error("Failed to load profile");
-        } finally {
-            setLoading(false);
-        }
-    }, [username, currentUser?.uid, fetchUserOrders]);
+        } catch (e) { console.error(e); } finally { setLoading(false); }
+    }, [username, isOwnProfile, currentUser?.uid, fetchUserOrders, syncWishlistToFirestore]);
 
-    useEffect(() => { fetchProfile(); }, [fetchProfile]);
+    useEffect(() => { fetchProfileData(); }, [fetchProfileData]);
 
     const handleSave = async () => {
         if (!userData?.id) return;
-        const toastId = toast.loading("Saving...");
+        setIsSaving(true);
         try {
-            await updateDoc(doc(db, "users", userData.id), editFields);
-            setUserData({ ...editFields });
+            const { displayName, bio } = editFields;
+            await updateDoc(doc(db, "users", userData.id), { displayName, bio: bio || "" });
+            setUserData({ ...userData, displayName, bio });
             setIsEditing(false);
-            toast.success("Updated!", { id: toastId });
-        } catch (e) {
-            toast.error("Save failed", { id: toastId });
-        }
+            toast.success("Profile updated");
+        } catch (e) { toast.error("Save failed"); } finally { setIsSaving(false); }
     };
 
-    if (loading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin" /></div>;
-    if (!userData) return <div className="p-20 text-center">User not found.</div>;
+    if (loading) return <div className="min-h-screen flex items-center justify-center bg-slate-50"><Loader2 className="animate-spin text-slate-400" /></div>;
+    if (!userData) return <div className="min-h-screen flex items-center justify-center">User not found</div>;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-4 md:p-8">
-            <div className="max-w-2xl mx-auto space-y-6">
-                
-                {/* Profile Header */}
-                <div className="flex flex-col items-center text-center space-y-4">
-                    <div className="relative">
-                        <div className="w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center text-white">
-                            <UserIcon size={40} />
-                        </div>
-                        <button 
-                            onClick={() => {
-                                navigator.clipboard.writeText(window.location.href);
-                                setCopied(true);
-                                setTimeout(() => setCopied(false), 2000);
-                                toast.success("Link copied");
-                            }}
-                            className="absolute -right-2 -top-2 p-2 bg-white shadow-md rounded-full"
-                        >
-                            {copied ? <Check size={14} className="text-green-500" /> : <Share2 size={14} />}
+        <div className="min-h-screen bg-slate-100/80 p-4 flex items-center justify-center antialiased">
+            <div className="w-full max-w-xl">
+                {/* Header Section */}
+                <div className="flex flex-col items-center mb-8 text-center relative">
+                    <div className="absolute right-0 top-0 flex gap-2">
+                        {isOwnProfile && (
+                            <button onClick={handleLogout} className="p-3 bg-white rounded-full shadow-sm hover:bg-red-50 text-slate-600 hover:text-red-50 transition-all">
+                                <LogOut size={18} />
+                            </button>
+                        )}
+                        <button onClick={() => {
+                            navigator.clipboard.writeText(window.location.href);
+                            setCopied(true);
+                            setTimeout(() => setCopied(false), 2000);
+                            toast.success("Link copied!");
+                        }} className="p-3 bg-white rounded-full shadow-sm hover:bg-slate-50 transition-all text-slate-600">
+                            {copied ? <Check size={18} className="text-green-500" /> : <Share2 size={18} />}
                         </button>
                     </div>
-
-                    <div>
-                        {isEditing ? (
-                            <Input 
-                                value={editFields.displayName} 
-                                onChange={e => setEditFields({...editFields, displayName: e.target.value})}
-                                className="text-center font-bold text-xl"
-                            />
-                        ) : (
-                            <h1 className="text-2xl font-bold">{userData.displayName}</h1>
-                        )}
-                        <p className="text-slate-500">@{userData.username}</p>
+                    
+                    <div className="relative group">
+                        <div 
+                            className={`w-24 h-24 bg-slate-900 rounded-full flex items-center justify-center mb-4 shadow-xl overflow-hidden border-4 border-white ${isOwnProfile ? 'cursor-pointer' : ''}`}
+                            onClick={() => isOwnProfile && fileInputRef.current?.click()}
+                        >
+                            {isUploading ? <Loader2 className="h-8 w-8 text-white animate-spin" /> : 
+                             userData.photoURL ? <Image src={userData.photoURL} alt="Avatar" width={96} height={96} className="object-cover w-full h-full" /> : 
+                             <UserIcon className="h-12 w-12 text-white" />}
+                            {isOwnProfile && !isUploading && (
+                                <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <Camera className="text-white h-6 w-6" />
+                                </div>
+                            )}
+                        </div>
+                        <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                     </div>
+                    
+                    {isEditing ? (
+                        <div className="w-full max-w-xs space-y-2">
+                            <Input value={editFields.displayName} onChange={(e) => setEditFields({...editFields, displayName: e.target.value})} className="text-center text-xl font-bold bg-white" placeholder="Name" />
+                            <Textarea value={editFields.bio} onChange={(e) => setEditFields({...editFields, bio: e.target.value})} className="text-center text-sm bg-white resize-none" placeholder="Write a short bio..." />
+                        </div>
+                    ) : (
+                        <>
+                            <h1 className="text-3xl font-extrabold text-slate-900">{userData.displayName}</h1>
+                            <p className="text-slate-500 text-sm mb-2">@{userData.username}</p>
+                            <p className="text-slate-600 text-sm max-w-xs italic">{userData.bio || "No bio yet."}</p>
+                        </>
+                    )}
                 </div>
 
-                <Card className="rounded-[2rem] overflow-hidden border-none shadow-sm">
+                <Card className="rounded-[2.5rem] bg-[#F3F0E6] overflow-hidden shadow-xl border-none">
                     <CardContent className="p-0">
-                        {/* Wishlist Section */}
-                        <div className="p-6 border-b">
-                            <div className="flex items-center gap-2 mb-4">
-                                <Heart size={18} className="text-rose-500 fill-rose-500" />
-                                <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Wishlist</h2>
+                        <div className="p-8 border-b border-slate-200/50">
+                            <div className="flex items-center gap-2 mb-6">
+                                <Heart size={16} className="text-rose-500 fill-rose-500" />
+                                <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Wishlist</h2>
                             </div>
-                            
-                            {userData.wishlist?.length > 0 ? (
+                            {userData?.wishlist && userData.wishlist.length > 0 ? (
                                 <div className="grid grid-cols-2 gap-4">
-                                    {userData.wishlist.map((item: any) => (
-                                        <ProductCard key={item.id} product={item} compact />
+                                    {userData.wishlist.map((product: any) => (
+                                        <ProductCard key={product.id} product={product} compact={true} />
                                     ))}
                                 </div>
                             ) : (
-                                <p className="text-sm text-slate-400 text-center py-4">Wishlist is empty</p>
+                                <div className="text-center py-10"><p className="text-sm text-slate-400 italic">Wishlist is empty</p></div>
                             )}
                         </div>
 
-                        {/* Order History (Owner Only) */}
                         {isOwnProfile && (
-                            <div className="p-6 bg-slate-50/50">
-                                <div className="flex items-center justify-between mb-4">
+                            <div className="p-8">
+                                <div className="flex items-center justify-between mb-6">
                                     <div className="flex items-center gap-2">
-                                        <Package size={18} className="text-blue-500" />
-                                        <h2 className="text-xs font-bold uppercase tracking-widest text-slate-400">Order History</h2>
+                                        <Package size={16} className="text-blue-500" />
+                                        <h2 className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Order History</h2>
                                     </div>
-                                    <button onClick={() => fetchUserOrders(userData.id)}>
-                                        <RefreshCw size={14} className={loadingOrders ? "animate-spin" : ""} />
-                                    </button>
+                                    <RefreshCw size={14} className={`cursor-pointer text-slate-400 ${loadingOrders ? 'animate-spin' : ''}`} onClick={() => fetchUserOrders(userData.id)} />
                                 </div>
-
-                                <div className="space-y-3">
-                                    {orders.length > 0 ? orders.map(order => (
-                                        <div key={order.id} className="bg-white p-4 rounded-xl shadow-sm flex justify-between items-center">
-                                            <div>
-                                                <p className="text-[10px] font-bold text-slate-400 uppercase">Order ID</p>
-                                                <p className="text-xs font-bold">#{order.id.slice(-6).toUpperCase()}</p>
+                                {loadingOrders ? (
+                                    <div className="flex justify-center py-4"><Loader2 className="animate-spin text-slate-300" /></div>
+                                ) : orders.length > 0 ? (
+                                    <div className="space-y-3">
+                                        {orders.map(order => (
+                                            <div key={order.id} className="p-4 bg-white/50 rounded-xl flex justify-between items-center shadow-sm">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-900">ORD-{order.id.slice(-5).toUpperCase()}</p>
+                                                    <p className="text-[9px] text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</p>
+                                                </div>
+                                                <p className="font-bold text-blue-600 text-sm">₵{order.totalAmount}</p>
                                             </div>
-                                            <div className="text-right">
-                                                <p className="text-sm font-bold text-blue-600">₵{order.totalAmount}</p>
-                                                <p className="text-[10px] text-slate-400">{new Date(order.createdAt).toLocaleDateString()}</p>
-                                            </div>
-                                        </div>
-                                    )) : !loadingOrders && (
-                                        <p className="text-sm text-slate-400 text-center py-4">No orders yet</p>
-                                    )}
-                                    {loadingOrders && <Loader2 className="animate-spin mx-auto text-slate-300" />}
-                                </div>
+                                        ))}
+                                    </div>
+                                ) : <p className="text-center text-sm text-slate-400 italic py-6">No orders yet</p>}
                             </div>
                         )}
 
-                        {/* Edit Action */}
                         {isOwnProfile && (
-                            <div className="p-4 bg-slate-900">
-                                <button 
-                                    onClick={isEditing ? handleSave : () => setIsEditing(true)}
-                                    className="w-full text-white text-sm font-bold flex items-center justify-center gap-2"
-                                >
-                                    {isEditing ? <><Save size={16}/> Save Changes</> : <><Edit2 size={16}/> Edit Profile</>}
+                            <div className="p-4 bg-[#0F172A]">
+                                <button onClick={isEditing ? handleSave : () => setIsEditing(true)} disabled={isSaving} className="w-full text-white font-bold flex items-center justify-center gap-2 py-2 active:scale-95 transition-all">
+                                    {isSaving ? <Loader2 className="animate-spin size={16}" /> : isEditing ? <Save size={16}/> : <Edit2 size={16}/>}
+                                    {isEditing ? "Save Profile" : "Edit Profile"}
                                 </button>
                             </div>
                         )}

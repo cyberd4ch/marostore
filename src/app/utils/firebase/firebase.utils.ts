@@ -1,4 +1,5 @@
 import { initializeApp } from "firebase/app";
+import { getStorage } from "firebase/storage";
 import {
     getAuth,
     signInWithRedirect,
@@ -42,6 +43,9 @@ export const db = initializeFirestore(firebaseApp, {
 });
 
 
+
+export const storage = getStorage(firebaseApp); // Added export
+export const auth = getAuth(firebaseApp);
 // const config = {
 //   databaseURL: 'https://crwn-fashion-clothing-db.firebaseio.com',
 //   measurementId: 'G-V6BJ556WCR',
@@ -51,7 +55,7 @@ export const db = initializeFirestore(firebaseApp, {
 const googleProvider = new GoogleAuthProvider();
 googleProvider.setCustomParameters({ prompt: "select_account" });
 
-export const auth = getAuth();
+
 export const signInWithGooglePopup = () =>
     signInWithPopup(auth, googleProvider);
 export const signInWithGoogleRedirect = () =>
