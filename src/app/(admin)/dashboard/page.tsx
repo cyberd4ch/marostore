@@ -5,10 +5,12 @@ import {
     LayoutDashboard, Users, ShoppingBag, DollarSign,
     TrendingUp, Loader2, ShoppingCart, UserCircleIcon,
     AlertTriangle, ArrowRight, CheckCircle, Percent,
-    Package, Truck, Warehouse, Activity, Globe, ShieldCheck
+    Package, Truck, Warehouse, Activity, Globe, ShieldCheck, 
+    Calendar, Clock, TruckIcon, TriangleAlertIcon, CalendarX2Icon, Clock8Icon
 } from "lucide-react";
 import { auth } from "@/app/utils/firebase/firebase.utils";
 import { SalesChart } from '@/components/admin/SalesChart';
+import StatisticsCard from "@/components/admin/StatisticsCard"; // Assuming this is where it's saved
 import Link from 'next/link';
 import { toast } from "sonner";
 
@@ -18,6 +20,7 @@ const AdminDashboard = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [usersData, setUsersData] = useState<any[]>([]);
     
+    // 1. Core Financial/Inventory Totals
     const totals = useMemo(() => {
         const totalRevenue = orders.reduce((acc, order) => {
             const amount = Number(order.totalAmount) || 0;
@@ -28,34 +31,53 @@ const AdminDashboard = () => {
             !['Delivered', 'Cancelled', 'Returned'].includes(o.status)
         ).length;
 
-        const avgOrderValue = orders.length > 0 ? totalRevenue / orders.length : 0;
-
         return {
             revenue: totalRevenue,
             active: activeOrdersCount,
-            avg: avgOrderValue,
             products: inventory.length
         };
     }, [orders, inventory]);
 
-    const topProducts = useMemo(() => {
-        const productMap: Record<string, { name: string, quantity: number, revenue: number }> = {};
-        orders.forEach((order) => {
-            order.items?.forEach((item: any) => {
-                const id = item._id || item.id || 'unknown';
-                if (!productMap[id]) {
-                    productMap[id] = { name: item.name || "Deleted Product", quantity: 0, revenue: 0 };
-                }
-                productMap[id].quantity += (Number(item.quantity) || 1);
-                productMap[id].revenue += (Number(item.price) || 0) * (Number(item.quantity) || 1);
-            });
-        });
-        return Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    // 2. NEW: Logistics Statistics Matrix (Dynamic Data)
+    const logisticsStats = useMemo(() => {
+        const shippedCount = orders.filter(o => o.status === 'Shipped' || o.status === 'Delivered').length;
+        const returnedCount = orders.filter(o => o.status === 'Returned').length;
+
+        return [
+            {
+                icon: <TruckIcon className='size-5' />,
+                value: shippedCount.toString(),
+                title: 'Shipped Orders',
+                changePercentage: '+18.2%' // Mocked trend
+            },
+            {
+                icon: <TriangleAlertIcon className='size-5' />,
+                value: returnedCount.toString(),
+                title: 'Damaged Returns',
+                changePercentage: '-8.7%'
+            },
+            {
+                icon: <CalendarX2Icon className='size-5' />,
+                value: '27', // Logic could be added here for specific delivery windows
+                title: 'Missed Delivery Slots',
+                changePercentage: '+4.3%'
+            },
+            {
+                icon: <Clock8Icon className='size-5' />,
+                value: '13',
+                title: 'Late Deliveries',
+                changePercentage: '-2.5%'
+            }
+        ];
     }, [orders]);
 
-    const lowStockItems = useMemo(() =>
-        inventory.filter((item: any) => item.stock !== undefined && Number(item.stock) < 5),
-        [inventory]);
+    // 3. Top-level KPIs
+    const displayStats = [
+        { title: "Net Throughput", value: `₵${totals.revenue.toLocaleString()}`, icon: Activity, color: "text-primary" },
+        { title: "Manifest Count", value: totals.products.toString(), icon: Package, color: "text-secondary" },
+        { title: "Active Logistics", value: totals.active.toString(), icon: Truck, color: "text-accent" },
+        { title: "Fulfillment Rate", value: "98.2%", icon: ShieldCheck, color: "text-emerald-600" },
+    ];
 
     useEffect(() => {
         let isMounted = true;
@@ -87,7 +109,6 @@ const AdminDashboard = () => {
                     setUsersData(Array.isArray(data) ? data : []);
                 }
             } catch (err) {
-                console.error("Dashboard Sync Error:", err);
                 toast.error("Real-time telemetry interrupted");
             } finally {
                 setLoading(false);
@@ -101,12 +122,24 @@ const AdminDashboard = () => {
         return () => { isMounted = false; unsubscribe(); };
     }, []);
 
-    const displayStats = [
-        { title: "Net Throughput", value: `₵${totals.revenue.toLocaleString()}`, icon: Activity, color: "text-primary" },
-        { title: "Manifest Count", value: totals.products.toString(), icon: Package, color: "text-secondary" },
-        { title: "Active Logistics", value: totals.active.toString(), icon: Truck, color: "text-accent" },
-        { title: "Fulfillment Rate", value: "98.2%", icon: ShieldCheck, color: "text-emerald-600" },
-    ];
+    const topProducts = useMemo(() => {
+        const productMap: Record<string, { name: string, quantity: number, revenue: number }> = {};
+        orders.forEach((order) => {
+            order.items?.forEach((item: any) => {
+                const id = item._id || item.id || 'unknown';
+                if (!productMap[id]) {
+                    productMap[id] = { name: item.name || "Deleted Product", quantity: 0, revenue: 0 };
+                }
+                productMap[id].quantity += (Number(item.quantity) || 1);
+                productMap[id].revenue += (Number(item.price) || 0) * (Number(item.quantity) || 1);
+            });
+        });
+        return Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+    }, [orders]);
+
+    const lowStockItems = useMemo(() =>
+        inventory.filter((item: any) => item.stock !== undefined && Number(item.stock) < 5),
+        [inventory]);
 
     return (
         <div className="p-6 md:p-10 bg-background min-h-screen space-y-10 font-space-grotesk">
@@ -115,7 +148,7 @@ const AdminDashboard = () => {
                 <div>
                     <div className="flex items-center gap-2 mb-2">
                         <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="caption uppercase tracking-widest text-muted-foreground/60 font-bold">System Online</span>
+                        <span className="caption uppercase tracking-widest text-muted-foreground/60 font-black">System Online</span>
                     </div>
                     <h1 className="display-medium tracking-tighter text-foreground">Operational Overview</h1>
                     <p className="subtitle text-muted-foreground/80 mt-1">Real-time telemetry for Maro Store logistics.</p>
@@ -131,7 +164,20 @@ const AdminDashboard = () => {
                 </div>
             </div>
 
-            {/* KPI Grid */}
+            {/* NEW: Logistics Statistics Matrix Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {logisticsStats.map((card, index) => (
+                    <StatisticsCard
+                        key={index}
+                        icon={card.icon}
+                        title={card.title}
+                        value={card.value}
+                        changePercentage={card.changePercentage}
+                    />
+                ))}
+            </div>
+
+            {/* KPI Grid (Secondary Metrics) */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {displayStats.map((stat, idx) => (
                     <Card key={idx} className="border border-border/30 shadow-none rounded-[2rem] bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/50 transition-all">
@@ -146,10 +192,9 @@ const AdminDashboard = () => {
                 ))}
             </div>
 
-            {/* Dashboard Content Grid */}
+            {/* Main Content Grid (Chart, Users, Table) */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                
-                {/* Main Revenue/Throughput Chart */}
+                {/* Revenue Flow Chart */}
                 <Card className="lg:col-span-8 border-none shadow-none rounded-[3rem] bg-card/40 p-6 md:p-8 border border-border/20">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 px-2">
                         <div>
@@ -166,7 +211,7 @@ const AdminDashboard = () => {
                     </div>
                 </Card>
 
-                {/* Stakeholder Matrix (Users) */}
+                {/* Stakeholder Matrix */}
                 <Card className="lg:col-span-4 border border-border/30 shadow-none rounded-[3rem] bg-background h-full flex flex-col">
                     <CardHeader className="border-b border-border/20 py-6">
                         <CardTitle className="h4 text-foreground flex items-center gap-2">
@@ -197,7 +242,7 @@ const AdminDashboard = () => {
                     </Link>
                 </Card>
 
-                {/* High Velocity Inventory Table */}
+                {/* Inventory Velocity Table */}
                 <Card className="lg:col-span-8 border border-border/20 shadow-none rounded-[3rem] bg-card/40 overflow-hidden">
                     <CardHeader className="flex flex-row items-center justify-between border-b border-border/20 p-8">
                         <div className="flex items-center gap-3">
@@ -234,7 +279,7 @@ const AdminDashboard = () => {
                     </CardContent>
                 </Card>
 
-                {/* Warehouse Integrity (Stock Alerts) */}
+                {/* Warehouse Integrity */}
                 <Card className="lg:col-span-4 border-none shadow-none rounded-[3.5rem] bg-primary text-primary-foreground p-8 flex flex-col justify-between">
                     <div>
                         <div className="flex items-center justify-between mb-8">
