@@ -62,7 +62,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                 {/* Left: Text Logo */}
                 <Link href="/" className="flex shrink-0 items-center">
                     <span className="text-2xl font-extrabold tracking-tighter text-slate-900 transition-colors hover:text-slate-700 md:text-3xl">
-                        marostore
+                        maro's
                     </span>
                 </Link>
 
@@ -107,7 +107,7 @@ export default function Navigation({ children }: { children: React.ReactNode }) 
                             </div>
                         ) : (
                             <Button asChild variant="outline" className="rounded-full font-semibold">
-                                <Link href="/auth">Sign In</Link>
+                                <Link href="/auth/signin">Sign In</Link>
                             </Button>
                         )}
                     </div>
