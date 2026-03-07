@@ -8,9 +8,9 @@ export async function POST(req: Request) {
 
     try {
         const data = await resend.emails.send({
-            from: 'MaroStore <onboarding@yourdomain.com>', // Replace with your verified domain
+            from: 'marostore <onboarding@yourdomain.com>', // Replace with your verified domain
             to: [email],
-            subject: 'Welcome to MaroStore!',
+            subject: 'Welcome to marostore!',
             html: `<h1>Hi ${displayName}!</h1><p>Thanks for joining us. Your fashion profile is officially ready.</p>`,
         });
 

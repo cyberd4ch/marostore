@@ -19,14 +19,12 @@ export default async function AdminLayout({
 
     try {
         // 2. Verify the JWT and Custom Claims on the Server
-
-
         const isAdmin = await verifyAdminStatus(sessionCookie);
         if (!isAdmin) redirect('/unauthorized');
 
         // 4. Authorized: Render the UI
         return (
-            <div className="flex min-h-screen bg-slate-50">
+            <div className="flex min-h-screen bg-background">
                 {/* We move your sidebar UI to a separate Client Component */}
                 <AdminSidebar />
 

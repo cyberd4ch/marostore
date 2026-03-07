@@ -28,11 +28,11 @@ export default function CategoryPage() {
 
                 // 3. FILTER: Match products to the current category 
                 // Using .toLowerCase() on both sides makes it bulletproof
-                const filteredProducts = allProducts.filter(
-                    (product: any) => 
-                        product.category?.toLowerCase() === categoryName.toLowerCase() &&
-                        product.status === 'published'
-                );
+                const filteredProducts = await response.json();
+
+                if (!response.ok) throw new Error(filteredProducts.error || "Failed to load");
+                
+                
 
                 // 4. NORMALIZE: Ensure ProductCard gets the right ID/Image
                 const normalized = filteredProducts.map((p: any) => ({

@@ -133,7 +133,7 @@ const OnboardingForm = () => {
             // 2. Refresh Redux Session
             dispatch(checkUserSession());
 
-            toast.success("Welcome to MaroStore!", { id: loadingToast });
+            toast.success("Welcome to marostore!", { id: loadingToast });
 
             await fetch('/api/send-welcome', {
                 method: 'POST',

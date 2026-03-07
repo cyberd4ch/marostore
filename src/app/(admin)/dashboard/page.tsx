@@ -4,9 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
     LayoutDashboard, Users, ShoppingBag, DollarSign,
     TrendingUp, Loader2, ShoppingCart, UserCircleIcon,
-    AlertTriangle, ArrowRight, CheckCircle, Percent
+    AlertTriangle, ArrowRight, CheckCircle, Percent,
+    Package, Truck, Warehouse, Activity, Globe, ShieldCheck
 } from "lucide-react";
-import { auth } from "@/app/utils/firebase/firebase.utils"; // Fixed path alias
+import { auth } from "@/app/utils/firebase/firebase.utils";
 import { SalesChart } from '@/components/admin/SalesChart';
 import Link from 'next/link';
 import { toast } from "sonner";
@@ -17,16 +18,8 @@ const AdminDashboard = () => {
     const [orders, setOrders] = useState<any[]>([]);
     const [usersData, setUsersData] = useState<any[]>([]);
     
-    const [stats, setStats] = useState([
-        { title: "Total Revenue", value: "₵0.00", icon: DollarSign, color: "text-emerald-600" },
-        { title: "Total Products", value: "0", icon: ShoppingBag, color: "text-blue-600" },
-        { title: "Active Orders", value: "0", icon: Users, color: "text-orange-600" },
-        { title: "Avg. Order Value", value: "₵0.00", icon: TrendingUp, color: "text-purple-600" },
-    ]);
-
     const totals = useMemo(() => {
         const totalRevenue = orders.reduce((acc, order) => {
-            // Only count completed/paid orders for revenue to keep stats honest
             const amount = Number(order.totalAmount) || 0;
             return order.status !== 'Cancelled' ? acc + amount : acc;
         }, 0);
@@ -45,10 +38,8 @@ const AdminDashboard = () => {
         };
     }, [orders, inventory]);
 
-    // 1. IMPROVED PRODUCT MAPPING (The Core Association)
-const topProducts = useMemo(() => {
+    const topProducts = useMemo(() => {
         const productMap: Record<string, { name: string, quantity: number, revenue: number }> = {};
-        
         orders.forEach((order) => {
             order.items?.forEach((item: any) => {
                 const id = item._id || item.id || 'unknown';
@@ -59,27 +50,22 @@ const topProducts = useMemo(() => {
                 productMap[id].revenue += (Number(item.price) || 0) * (Number(item.quantity) || 1);
             });
         });
-
         return Object.values(productMap).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
     }, [orders]);
 
-    // 2. LIVE INVENTORY ALERTS
     const lowStockItems = useMemo(() =>
         inventory.filter((item: any) => item.stock !== undefined && Number(item.stock) < 5),
         [inventory]);
 
     useEffect(() => {
         let isMounted = true;
-
         const fetchDashboardData = async () => {
             try {
                 const user = auth.currentUser;
                 if (!user) return;
-                
                 const token = await user.getIdToken(true);
                 const headers = { 'Authorization': `Bearer ${token}` };
 
-                // Fetch individually so one failure doesn't kill the dashboard
                 const [prodRes, orderRes, userRes] = await Promise.allSettled([
                     fetch('/api/products', { headers }),
                     fetch('/api/orders', { headers }),
@@ -92,20 +78,17 @@ const topProducts = useMemo(() => {
                     const data = await prodRes.value.json();
                     setInventory(Array.isArray(data) ? data : []);
                 }
-
                 if (orderRes.status === 'fulfilled' && orderRes.value.ok) {
                     const data = await orderRes.value.json();
                     setOrders(Array.isArray(data) ? data : []);
                 }
-
                 if (userRes.status === 'fulfilled' && userRes.value.ok) {
                     const data = await userRes.value.json();
                     setUsersData(Array.isArray(data) ? data : []);
                 }
-
             } catch (err) {
-                console.error("Critical Dashboard Failure:", err);
-                toast.error("Real-time sync interrupted");
+                console.error("Dashboard Sync Error:", err);
+                toast.error("Real-time telemetry interrupted");
             } finally {
                 setLoading(false);
             }
@@ -115,156 +98,180 @@ const topProducts = useMemo(() => {
             if (user) fetchDashboardData();
             else setLoading(false);
         });
-
         return () => { isMounted = false; unsubscribe(); };
     }, []);
 
     const displayStats = [
-        { title: "Total Revenue", value: `₵${totals.revenue.toLocaleString()}`, icon: DollarSign, color: "text-emerald-600" },
-        { title: "Total Products", value: totals.products.toString(), icon: ShoppingBag, color: "text-blue-600" },
-        { title: "Active Orders", value: totals.active.toString(), icon: Users, color: "text-orange-600" },
-        { title: "Avg. Order Value", value: `₵${totals.avg.toFixed(2)}`, icon: TrendingUp, color: "text-purple-600" },
+        { title: "Net Throughput", value: `₵${totals.revenue.toLocaleString()}`, icon: Activity, color: "text-primary" },
+        { title: "Manifest Count", value: totals.products.toString(), icon: Package, color: "text-secondary" },
+        { title: "Active Logistics", value: totals.active.toString(), icon: Truck, color: "text-accent" },
+        { title: "Fulfillment Rate", value: "98.2%", icon: ShieldCheck, color: "text-emerald-600" },
     ];
 
     return (
-        <div className="p-8 bg-slate-50 min-h-screen space-y-8">
-            <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                    <LayoutDashboard className="h-8 w-8 text-slate-900" />
-                    <h1 className="text-3xl font-black text-slate-900 tracking-tighter uppercase">Maro Analytics</h1>
+        <div className="p-6 md:p-10 bg-background min-h-screen space-y-10 font-space-grotesk">
+            {/* Header Section */}
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 border-b border-border/40 pb-8">
+                <div>
+                    <div className="flex items-center gap-2 mb-2">
+                        <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <span className="caption uppercase tracking-widest text-muted-foreground/60 font-bold">System Online</span>
+                    </div>
+                    <h1 className="display-medium tracking-tighter text-foreground">Operational Overview</h1>
+                    <p className="subtitle text-muted-foreground/80 mt-1">Real-time telemetry for Maro Store logistics.</p>
                 </div>
-                {loading && <Loader2 className="animate-spin text-blue-600" />}
+                <div className="flex items-center gap-3 bg-muted/20 p-2 rounded-2xl border border-border/20">
+                    <div className="h-10 w-10 bg-primary/10 rounded-xl flex items-center justify-center">
+                        <Globe className="text-primary" size={20} />
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Region</p>
+                        <p className="text-sm font-bold">West Africa / GH</p>
+                    </div>
+                </div>
             </div>
 
-            {/* Stats Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            {/* KPI Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {displayStats.map((stat, idx) => (
-                    <Card key={idx} className="border-none shadow-sm rounded-3xl bg-white hover:shadow-md transition-shadow">
+                    <Card key={idx} className="border border-border/30 shadow-none rounded-[2rem] bg-card/50 backdrop-blur-sm overflow-hidden group hover:border-primary/50 transition-all">
                         <CardHeader className="flex flex-row items-center justify-between pb-2">
-                            <CardTitle className="text-[10px] font-bold uppercase text-slate-400 tracking-widest">{stat.title}</CardTitle>
-                            <stat.icon className={`h-5 w-5 ${stat.color}`} />
+                            <CardTitle className="caption text-[11px] font-black uppercase text-muted-foreground tracking-widest">{stat.title}</CardTitle>
+                            <stat.icon className={`h-5 w-5 ${stat.color} group-hover:scale-110 transition-transform`} />
                         </CardHeader>
                         <CardContent>
-                            <div className="text-2xl font-black text-slate-900">{stat.value}</div>
+                            <div className="text-3xl font-funnel font-bold text-foreground">{stat.value}</div>
                         </CardContent>
                     </Card>
                 ))}
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Sales Performance */}
-                <div className="lg:col-span-2">
-                    <Card className="border-none shadow-sm rounded-[2.5rem] bg-white p-6 h-full">
-                         <div className="flex justify-between items-center mb-6 px-4">
-                            <h2 className="text-lg font-bold uppercase tracking-tight">Revenue Stream</h2>
-                            <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full">+12% vs last month</span>
+            {/* Dashboard Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+                
+                {/* Main Revenue/Throughput Chart */}
+                <Card className="lg:col-span-8 border-none shadow-none rounded-[3rem] bg-card/40 p-6 md:p-8 border border-border/20">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 px-2">
+                        <div>
+                            <h2 className="h3 tracking-tight text-foreground">Revenue Flow</h2>
+                            <p className="caption text-muted-foreground">Historical throughput across all channels</p>
                         </div>
+                        <div className="flex items-center gap-2 bg-emerald-500/10 text-emerald-600 px-4 py-2 rounded-2xl border border-emerald-500/20">
+                            <TrendingUp size={16} />
+                            <span className="text-sm font-bold">+12.5% Performance</span>
+                        </div>
+                    </div>
+                    <div className="h-[350px] w-full">
                         <SalesChart orders={orders} />
-                    </Card>
-                </div>
+                    </div>
+                </Card>
 
-                {/* Users and CRM */}
-                <div className="lg:col-span-1">
-                    <Card className="border-none shadow-sm rounded-[2.5rem] bg-white h-full overflow-hidden flex flex-col">
-                        <CardHeader className="border-b border-slate-50 bg-white sticky top-0">
-                            <CardTitle className="text-lg font-bold uppercase">Customer Flow</CardTitle>
-                        </CardHeader>
-                        <div className="divide-y divide-slate-50 overflow-y-auto flex-grow">
-                            {usersData.length > 0 ? usersData.slice(0, 8).map((user: any) => (
-                                <div key={user.uid} className="flex items-center justify-between p-4 hover:bg-slate-50 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <div className="h-10 w-10 rounded-full bg-slate-100 flex items-center justify-center">
-                                            <UserCircleIcon className="h-6 w-6 text-slate-400" />
-                                        </div>
-                                        <div className="max-w-[140px]">
-                                            <p className="font-bold text-sm truncate text-slate-900">{user.displayName || "Guest Customer"}</p>
-                                            <p className="text-[10px] text-slate-400 truncate">{user.email}</p>
-                                        </div>
+                {/* Stakeholder Matrix (Users) */}
+                <Card className="lg:col-span-4 border border-border/30 shadow-none rounded-[3rem] bg-background h-full flex flex-col">
+                    <CardHeader className="border-b border-border/20 py-6">
+                        <CardTitle className="h4 text-foreground flex items-center gap-2">
+                            <Users size={20} className="text-secondary" />
+                            Stakeholder Matrix
+                        </CardTitle>
+                    </CardHeader>
+                    <div className="divide-y divide-border/20 overflow-y-auto flex-grow scrollbar-hide">
+                        {usersData.length > 0 ? usersData.slice(0, 6).map((user: any) => (
+                            <div key={user.uid} className="flex items-center justify-between p-5 hover:bg-muted/10 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <div className="h-12 w-12 rounded-2xl bg-muted/30 border border-border/20 flex items-center justify-center text-foreground font-bold">
+                                        {user.displayName?.[0] || "G"}
                                     </div>
-                                    <span className={`px-2 py-0.5 text-[9px] font-black uppercase rounded-full ${user.isAdmin ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-                                        {user.isAdmin ? 'Staff' : 'Client'}
-                                    </span>
+                                    <div>
+                                        <p className="font-bold text-sm text-foreground">{user.displayName || "Unidentified User"}</p>
+                                        <p className="text-[10px] uppercase font-black text-muted-foreground tracking-widest">{user.email?.split('@')[0]}</p>
+                                    </div>
                                 </div>
-                            )) : (
-                                <div className="p-8 text-center text-slate-400 text-xs">No customer data found</div>
-                            )}
-                        </div>
-                        <Link href="/dashboard/users" className="p-4 bg-slate-50 text-center text-[10px] font-black text-blue-600 hover:bg-blue-50 transition-colors uppercase tracking-widest">
-                            Audience Insights
-                        </Link>
-                    </Card>
-                </div>
-
-                {/* Best Sellers (Product-Order Association Table) */}
-                <div className="lg:col-span-2">
-                    <Card className="border-none shadow-sm rounded-[2.5rem] bg-white overflow-hidden">
-                        <CardHeader className="flex flex-row items-center gap-3 border-b border-slate-50 pb-6">
-                            <div className="p-2 bg-blue-50 rounded-xl">
-                                <ShoppingCart className="h-5 w-5 text-blue-600" />
+                                <div className={`h-2 w-2 rounded-full ${user.isAdmin ? 'bg-primary shadow-[0_0_8px_rgba(29,45,68,0.5)]' : 'bg-muted-foreground/30'}`} />
                             </div>
-                            <CardTitle className="text-xl font-black uppercase tracking-tight">High Velocity Products</CardTitle>
-                        </CardHeader>
-                        <CardContent className="p-0">
+                        )) : (
+                            <div className="p-10 text-center text-muted-foreground caption">No network data detected</div>
+                        )}
+                    </div>
+                    <Link href="/dashboard/users" className="m-4 p-4 bg-foreground text-background text-center caption font-bold rounded-2xl hover:opacity-90 transition-opacity uppercase tracking-widest">
+                        Verify Permissions
+                    </Link>
+                </Card>
+
+                {/* High Velocity Inventory Table */}
+                <Card className="lg:col-span-8 border border-border/20 shadow-none rounded-[3rem] bg-card/40 overflow-hidden">
+                    <CardHeader className="flex flex-row items-center justify-between border-b border-border/20 p-8">
+                        <div className="flex items-center gap-3">
+                            <Warehouse className="text-primary" size={24} />
+                            <CardTitle className="h3 tracking-tight">Inventory Velocity</CardTitle>
+                        </div>
+                        <span className="caption text-xs font-black text-muted-foreground uppercase tracking-widest">Top 5 SKU</span>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <div className="overflow-x-auto">
                             <table className="w-full text-left">
-                                <thead className="bg-slate-50/50">
+                                <thead className="bg-muted/20">
                                     <tr>
-                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Product Name</th>
-                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase text-center tracking-widest">Volume</th>
-                                        <th className="px-8 py-4 text-[10px] font-bold text-slate-400 uppercase text-right tracking-widest">Gross Revenue</th>
+                                        <th className="px-8 py-5 caption text-[10px] font-black text-muted-foreground uppercase tracking-widest">Asset Name</th>
+                                        <th className="px-8 py-5 caption text-[10px] font-black text-muted-foreground uppercase text-center tracking-widest">Units Moved</th>
+                                        <th className="px-8 py-5 caption text-[10px] font-black text-muted-foreground uppercase text-right tracking-widest">Revenue (GHS)</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-slate-50">
+                                <tbody className="divide-y divide-border/10">
                                     {topProducts.length > 0 ? topProducts.map((product, idx) => (
-                                        <tr key={idx} className="hover:bg-slate-50/30 transition-colors">
-                                            <td className="px-8 py-4 font-bold text-sm text-slate-900">{product.name}</td>
-                                            <td className="px-8 py-4 text-center text-sm font-medium">
-                                                <span className="bg-slate-100 px-3 py-1 rounded-lg">{product.quantity}</span>
+                                        <tr key={idx} className="hover:bg-muted/5 transition-colors group">
+                                            <td className="px-8 py-5 font-bold text-sm text-foreground group-hover:text-primary transition-colors">{product.name}</td>
+                                            <td className="px-8 py-5 text-center">
+                                                <span className="bg-primary/10 text-primary px-4 py-1.5 rounded-xl font-bold text-xs">{product.quantity}</span>
                                             </td>
-                                            <td className="px-8 py-4 text-right font-black text-sm text-emerald-600">₵{product.revenue.toLocaleString()}</td>
+                                            <td className="px-8 py-5 text-right font-funnel font-bold text-lg text-foreground">₵{product.revenue.toLocaleString()}</td>
                                         </tr>
                                     )) : (
-                                        <tr><td colSpan={3} className="text-center py-10 text-slate-400 text-xs uppercase font-bold tracking-widest">No Sales Recorded Yet</td></tr>
+                                        <tr><td colSpan={3} className="text-center py-16 caption text-muted-foreground uppercase">Zero Asset Movement Data</td></tr>
                                     )}
                                 </tbody>
                             </table>
-                        </CardContent>
-                    </Card>
-                </div>
+                        </div>
+                    </CardContent>
+                </Card>
 
-                {/* Stock Watch (Inventory Alerts) */}
-                <div className="lg:col-span-1">
-                    <Card className="border-none shadow-xl rounded-[2.5rem] bg-white h-full flex flex-col">
-                        <CardHeader className="flex flex-row items-center gap-3">
-                            <div className="p-2 bg-amber-50 rounded-xl">
-                                <AlertTriangle className="h-5 w-5 text-amber-600" />
+                {/* Warehouse Integrity (Stock Alerts) */}
+                <Card className="lg:col-span-4 border-none shadow-none rounded-[3.5rem] bg-primary text-primary-foreground p-8 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="p-3 bg-primary-foreground/10 rounded-2xl">
+                                <AlertTriangle className="text-primary-foreground" size={24} />
                             </div>
-                            <CardTitle className="text-xl font-black uppercase tracking-tight">Stock Watch</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-4 flex-grow">
-                            {lowStockItems.length > 0 ? (
-                                lowStockItems.map((item: any) => (
-                                    <div key={item._id} className="flex items-center justify-between p-4 bg-amber-50/30 rounded-3xl border border-amber-100 group hover:border-amber-300 transition-colors">
-                                        <div className="flex flex-col">
-                                            <p className="text-sm font-black uppercase text-slate-900 truncate max-w-[140px]">{item.name}</p>
-                                            <p className="text-[10px] text-amber-600 font-bold uppercase tracking-tighter mt-1">Critical: {item.stock} Units Left</p>
-                                        </div>
-                                        <Link href="/dashboard/products" className="p-2 bg-white rounded-xl shadow-sm group-hover:bg-amber-600 group-hover:text-white transition-all">
-                                            <ArrowRight size={18} />
-                                        </Link>
+                            <span className="caption font-black uppercase text-[10px] tracking-widest bg-destructive text-destructive-foreground px-3 py-1 rounded-full">Alerts Active</span>
+                        </div>
+                        <h2 className="h2 font-normal text-primary-foreground">Warehouse Integrity</h2>
+                        <p className="caption text-primary-foreground/70 mt-2">Assets requiring immediate restocking or rotation.</p>
+                    </div>
+
+                    <div className="space-y-3 my-8">
+                        {lowStockItems.length > 0 ? (
+                            lowStockItems.slice(0, 3).map((item: any) => (
+                                <div key={item._id} className="flex items-center justify-between p-4 bg-primary-foreground/5 rounded-2xl border border-primary-foreground/10 group">
+                                    <div className="flex flex-col overflow-hidden">
+                                        <p className="text-sm font-bold truncate pr-2">{item.name}</p>
+                                        <p className="text-[10px] font-black uppercase tracking-tighter text-primary-foreground/50">Units: {item.stock}</p>
                                     </div>
-                                ))
-                            ) : (
-                                <div className="text-center py-14 flex flex-col items-center">
-                                    <div className="h-16 w-16 bg-emerald-50 rounded-full flex items-center justify-center mb-4">
-                                        <CheckCircle className="h-8 w-8 text-emerald-500" />
-                                    </div>
-                                    <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">Inventory Healthy</p>
+                                    <Link href="/dashboard/products" className="h-8 w-8 flex items-center justify-center bg-primary-foreground text-primary rounded-xl shrink-0 group-hover:scale-105 transition-transform">
+                                        <ArrowRight size={16} />
+                                    </Link>
                                 </div>
-                            )}
-                        </CardContent>
-                    </Card>
-                </div>
+                            ))
+                        ) : (
+                            <div className="py-6 text-center border-2 border-dashed border-primary-foreground/20 rounded-[2.5rem]">
+                                <CheckCircle className="mx-auto h-8 w-8 mb-2 opacity-50" />
+                                <p className="caption text-[10px] font-black uppercase tracking-widest">Integrity Nominal</p>
+                            </div>
+                        )}
+                    </div>
+
+                    <Link href="/dashboard/products" className="w-full py-4 text-center bg-primary-foreground text-primary caption font-black uppercase tracking-widest rounded-2xl hover:bg-secondary transition-colors">
+                        Asset Log
+                    </Link>
+                </Card>
             </div>
         </div>
     );

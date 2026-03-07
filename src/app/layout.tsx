@@ -15,7 +15,7 @@ const spaceGrotesk = Space_Grotesk({ subsets: ['latin'], variable: '--font-space
 const dmSerifDisplay = DM_Serif_Display({ weight: '400', subsets: ['latin'], variable: '--font-dm-serif-display' });
 
 export const metadata = {
-  title: 'MaroStore - Fashion E-commerce',
+  title: 'marostore - Fashion E-commerce',
   description: 'Online shopping for classy clothes and accessories',
 };
 
