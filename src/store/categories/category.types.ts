@@ -6,9 +6,21 @@ export enum CATEGORIES_ACTION_TYPES {
 
 export type CategoryItem = {
     id: number;
+    _id?: string; // Firebase Document ID
     imageUrl: string;
     name: string;
     price: number;
+    category?: string; // Injected during flattening
+    status?: 'published' | 'draft';
+    description?: string;
+    stock?: number;
+    rating?: {
+        rate: number;
+        count: number;
+    };
+    discountPrice?: number | null;
+    createdAt?: any;
+    updatedAt?: any;
 };
 
 export type Category = {

@@ -1,12 +1,12 @@
-import { Providers } from './providers';
+import { Providers } from '../components/providers/providers.component';
 import { Space_Grotesk, DM_Serif_Display } from 'next/font/google';
-import Navigation from '@/app/routes/navigation';
+import Navigation from '@/components/navigation/routes/navigation';
 import Footer from '@/components/Footer';
 import localFont from 'next/font/local';
 import './globals.css';
 import React from 'react';
 import { Toaster } from 'sonner';
-import OnboardingGuard from "@/components/OnboardingGuard";
+import OnboardingGuard from "@/components/guards/OnboardingGuard";
 
 
 
@@ -24,7 +24,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${spaceGrotesk.variable} ${dmSerifDisplay.variable}`}>
       <body className="font-sans">
         <Providers>
-
           {/* Add the Guard here inside the providers */}
           <OnboardingGuard>
             <Navigation>

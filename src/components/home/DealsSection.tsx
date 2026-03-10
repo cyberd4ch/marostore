@@ -4,73 +4,51 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useDispatch, useSelector } from 'react-redux';
-import { Heart, ShoppingBag, Zap } from 'lucide-react';
+import { Heart, ShoppingBag, Zap, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner'; // Assuming you use sonner for notifications like the other component
+import { toast } from 'sonner';
 
-import SHOP_DATA from '@/app/utils/shop/shop-data'; 
-import { addItemToCart } from '@store/cart/cart.action'; // Assuming this action exists and is properly set up
+import { addItemToCart } from '@/store/cart/cart.action';
 import { selectCartItems } from '@/store/cart/cart.selector';
-import { EasterCountdown } from '@/components/countdown/EasterCountdown';
-
-// --- NEW IMPORTS FOR WISHLIST ---
 import { selectWishlistItems } from '@/store/wishlist/wishlist.selector';
 import { toggleItemInWishlist } from '@/store/wishlist/wishlist.action';
-
-interface ShopItem {
-    id: number;
-    name: string;
-    imageUrl: string;
-    price: number;
-}
-
-interface ShopCategory {
-    id: number;
-    title: string;
-    routeName: string;
-    items: ShopItem[];
-}
+import { selectCategoriesMap, selectCategoriesIsLoading } from '@/store/categories/category.selector';
+import { EasterCountdown } from '@/components/countdown/EasterCountdown';
 
 export default function DealsSection() {
     const dispatch = useDispatch();
     const router = useRouter();
     
-    // Selectors
+    // Live Data Selectors
+    const categoriesMap = useSelector(selectCategoriesMap);
+    const isLoading = useSelector(selectCategoriesIsLoading);
     const cartItems = useSelector(selectCartItems);
     const wishlistItems = useSelector(selectWishlistItems);
 
-    const categories = Object.values(SHOP_DATA as unknown as Record<string, ShopCategory>);
-    
-    const allProducts = categories.flatMap((category) => 
-        Array.isArray(category.items) ? category.items : []
-    );
-
+    // Flatten map to items and filter for Deals (Price > 200)
+    const allProducts = Object.values(categoriesMap).flat();
     const deals = allProducts
         .filter((item) => item.price > 200)
         .slice(0, 4);
 
-    // Handlers
-    const handleAddToCart = (product: ShopItem) => {
-        dispatch(addItemToCart(cartItems, product as any));
+    const handleAddToCart = (product: any) => {
+        dispatch(addItemToCart(cartItems, product));
         toast.success(`${product.name} added to cart`);
     };
 
-    const handleBuyNow = (product: ShopItem) => {
-        dispatch(addItemToCart(cartItems, product as any));
+    const handleBuyNow = (product: any) => {
+        dispatch(addItemToCart(cartItems, product));
         router.push('/checkout');
     };
 
-    // --- NEW WISHLIST HANDLER ---
-    const handleToggleFavorite = (product: ShopItem) => {
+    const handleToggleFavorite = (product: any) => {
         const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
-        dispatch(toggleItemInWishlist(wishlistItems, product as any));
-
-        if (!isFavorite) {
-            toast.success(`${product.name} added to wishlist`);
-        } else {
-            toast.info(`${product.name} removed from wishlist`);
-        }
+        dispatch(toggleItemInWishlist(wishlistItems, product));
+        if (!isFavorite) toast.success(`${product.name} added to wishlist`);
+        else toast.info(`${product.name} removed from wishlist`);
     };
+
+    if (isLoading) return null;
 
     return (
         <div className="max-w-7xl mx-auto px-4">
@@ -90,13 +68,7 @@ export default function DealsSection() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
                 {deals.map((product) => {
-                    const totalInventory = 50; 
-                    const soldCount = Math.floor((product.id % 10) * 4) + 10;
-                    const percentage = (soldCount / totalInventory) * 100;
-                    
-                    // Check if this specific product is in wishlist
                     const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
-
                     return (
                         <div key={product.id} className="group relative">
                             <div className="relative aspect-[3/4] rounded-none overflow-hidden mb-5 bg-slate-50">
@@ -106,53 +78,23 @@ export default function DealsSection() {
                                     fill 
                                     className="object-cover grayscale-[20%] group-hover:grayscale-0 group-hover:scale-110 transition-all duration-700"
                                 />
-                                
                                 <div className="absolute top-4 left-4 bg-red-600 text-white text-[9px] font-black px-2 py-1 uppercase z-10">
                                     -20% OFF
                                 </div>
 
                                 <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col items-center justify-end p-4 gap-2">
-                                    <button 
-                                        onClick={() => handleBuyNow(product)}
-                                        className="w-full bg-white text-slate-900 text-[10px] font-black uppercase py-3 tracking-widest hover:bg-slate-900 hover:text-white transition-colors flex items-center justify-center gap-2"
-                                    >
+                                    <button onClick={() => handleBuyNow(product)} className="w-full bg-white text-slate-900 text-[10px] font-black uppercase py-3 tracking-widest hover:bg-slate-900 hover:text-white transition-colors flex items-center justify-center gap-2">
                                         <Zap className="w-3 h-3 fill-current" /> Buy It Now
                                     </button>
-                                    <button 
-                                        onClick={() => handleAddToCart(product)}
-                                        className="w-full bg-slate-900 text-white text-[10px] font-black uppercase py-3 tracking-widest hover:bg-black transition-colors flex items-center justify-center gap-2"
-                                    >
+                                    <button onClick={() => handleAddToCart(product)} className="w-full bg-slate-900 text-white text-[10px] font-black uppercase py-3 tracking-widest hover:bg-black transition-colors flex items-center justify-center gap-2">
                                         <ShoppingBag className="w-3 h-3" /> Add To Cart
                                     </button>
                                 </div>
 
-                                {/* UPDATED FAVORITE BUTTON */}
-                                <button 
-                                    onClick={() => handleToggleFavorite(product)}
-                                    className="absolute top-4 right-4 h-9 w-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all z-10"
-                                >
-                                    <Heart 
-                                        className={cn(
-                                            "w-4 h-4 transition-colors",
-                                            isFavorite ? "fill-red-500 text-red-500" : "text-slate-900"
-                                        )} 
-                                    />
+                                <button onClick={() => handleToggleFavorite(product)} className="absolute top-4 right-4 h-9 w-9 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center shadow-sm hover:bg-white transition-all z-10">
+                                    <Heart className={cn("w-4 h-4 transition-colors", isFavorite ? "fill-red-500 text-red-500" : "text-slate-900")} />
                                 </button>
                             </div>
-
-                            <div className="space-y-2 mb-4">
-                                <div className="h-[2px] w-full bg-slate-100 overflow-hidden">
-                                    <div 
-                                        className="h-full bg-slate-900 transition-all duration-1000" 
-                                        style={{ width: `${percentage}%` }}
-                                    />
-                                </div>
-                                <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-slate-400">
-                                    <span>Sold: {soldCount}</span>
-                                    <span>Available: {totalInventory - soldCount}</span>
-                                </div>
-                            </div>
-
                             <h4 className="font-bold text-sm text-slate-900 uppercase tracking-tight mb-1">{product.name}</h4>
                             <div className="flex items-center gap-3">
                                 <span className="text-base font-black text-slate-900">₵{product.price}</span>
