@@ -11,7 +11,7 @@ import DealsSection from '@/components/home/DealsSection';
 import { fetchCategoriesStart } from '@/store/categories/category.action';
 import { selectCategoriesMap } from '@/store/categories/category.selector';
 import TrendingWearSection from '@/components/home/TrendingWearSection';
-import CategoryShowcase from '@/components/home/CategoryShowcase';
+import { CategoryShowcase } from '@/components/home/CategoryShowcase';
 
 export default function HomePage() {
   const dispatch = useDispatch();
@@ -68,7 +68,7 @@ export default function HomePage() {
         </div>
         {/* Subtle background text */}
         <div className="absolute bottom-0 right-0 text-[20vw] font-black text-slate-200/50 leading-none select-none translate-y-1/4">
-          MARO
+          MARO'S
         </div>
       </section>
 
@@ -82,7 +82,7 @@ export default function HomePage() {
       </section>
 
             <section className="py-24 bg-white border-y border-slate-100">
-          <CategoryShowcase categories={categoriesArray}/>
+          <CategoryShowcase />
       </section>
       
 

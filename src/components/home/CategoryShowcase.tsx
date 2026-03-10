@@ -6,6 +6,14 @@ import Link from 'next/link';
 import { useSelector } from 'react-redux';
 import { Search, ArrowRight, Loader2 } from 'lucide-react';
 import { selectCategoriesMap, selectCategoriesIsLoading } from '@/store/categories/category.selector';
+import { CategoryItem } from "@/store/categories/category.types";
+
+interface CategoryShowcaseProps {
+    categories: {
+        title: string;
+        items: CategoryItem[];
+    }[];
+}
 
 const CATEGORY_STYLES: Record<string, string> = {
     mens: "bg-blue-50",
@@ -15,13 +23,13 @@ const CATEGORY_STYLES: Record<string, string> = {
     jackets: "bg-orange-50",
 };
 
-const CategoryShowcase: FC = () => {
+export const CategoryShowcase = () => {
     // 1. Pull live data from Redux
     const categoriesMap = useSelector(selectCategoriesMap);
     const isLoading = useSelector(selectCategoriesIsLoading);
 
     // 2. Convert Map to Array for rendering
-    const categories = Object.keys(categoriesMap).map((title) => ({
+    const formattedCategories = Object.keys(categoriesMap).map((title) => ({
         title,
         items: categoriesMap[title],
     }));
@@ -51,7 +59,7 @@ const CategoryShowcase: FC = () => {
 
             {/* Dynamic Pill Category Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {categories.slice(0, 4).map(({ title, items }) => {
+                {formattedCategories.slice(0, 4).map(({ title, items }) => {
                     // This picks the most recently added product as the category cover
                     const latestProduct = items[items.length - 1]; 
                     const bgStyle = CATEGORY_STYLES[title.toLowerCase()] || "bg-slate-50";
@@ -93,5 +101,3 @@ const CategoryShowcase: FC = () => {
         </section>
     );
 };
-
-export default CategoryShowcase;
