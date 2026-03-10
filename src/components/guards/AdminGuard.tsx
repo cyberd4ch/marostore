@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 // We no longer need useRouter since we are showing the UnauthorizedScreen instead of redirecting
 import { auth, getUserDocument } from '@/lib/utils/firebase/firebase.utils';
 import { onAuthStateChanged } from 'firebase/auth';
-import { LoadingScreen, UnauthorizedScreen } from './status-screens';
+import { LoadingScreen, UnauthorizedScreen } from '@/components/status-screens';
 
 export default function AdminGuard({ children }: { children: React.ReactNode }) {
     const [status, setStatus] = useState<'loading' | 'authorized' | 'unauthorized'>('loading');
