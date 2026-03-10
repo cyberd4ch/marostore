@@ -8,7 +8,7 @@ import {
     Package, Truck, Warehouse, Activity, Globe, ShieldCheck, 
     Calendar, Clock, TruckIcon, TriangleAlertIcon, CalendarX2Icon, Clock8Icon
 } from "lucide-react";
-import { auth } from "@/app/utils/firebase/firebase.utils";
+import { auth } from "@/lib/utils/firebase/firebase.utils";
 import { SalesChart } from '@/components/admin/SalesChart';
 import StatisticsCard from "@/components/admin/StatisticsCard"; // Assuming this is where it's saved
 import Link from 'next/link';

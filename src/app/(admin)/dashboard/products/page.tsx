@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react';
 import { CldUploadWidget } from 'next-cloudinary';
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; // Ensure you have this shadcn component

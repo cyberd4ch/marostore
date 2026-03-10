@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { Loader2, CheckCircle2, Lock } from 'lucide-react';

@@ -7,11 +7,11 @@ import {
     withMatcher,
     Action,
     ActionWithPayload,
-} from '../../app/utils/reducer/reducer.utils';
+} from '../../lib/utils/reducer/reducer.utils';
 import {
     UserData,
     AdditionalInformation,
-} from '../../app/utils/firebase/firebase.utils';
+} from '../../lib/utils/firebase/firebase.utils';
 
 export type SetGuestEmail = ActionWithPayload<USER_ACTION_TYPES.SET_GUEST_EMAIL, string>;
 

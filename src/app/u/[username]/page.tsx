@@ -10,7 +10,7 @@ import { collection, query, where, getDocs, doc, updateDoc, getDoc } from "fireb
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { signOut } from "firebase/auth";
 import { toast } from "sonner";
-import { db, auth, storage } from "@/app/utils/firebase/firebase.utils";
+import { db, auth, storage } from "@/lib/utils/firebase/firebase.utils";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

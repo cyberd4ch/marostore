@@ -1,6 +1,6 @@
 // components/AdminPanel/handle-promote.ts
 
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 
 export const handlePromote = async (uid: string) => {
     try {

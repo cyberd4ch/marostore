@@ -1,16 +1,24 @@
 import { NextResponse } from 'next/server';
-import { adminAuth, adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
+import { adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
 import { revalidatePath } from 'next/cache';
 
+/**
+ * IMPROVED AUTH HELPER
+ * Wrapped in try/catch to ensure malformed tokens don't crash the route.
+ */
 async function isAuthorized(req: Request) {
-    const token = req.headers.get('Authorization')?.split('Bearer ')[1];
-    if (!token) return false;
-    return await verifyAdminStatus(token);
+    try {
+        const token = req.headers.get('Authorization')?.split('Bearer ')[1];
+        if (!token) return false;
+        return await verifyAdminStatus(token);
+    } catch (error) {
+        console.error("Auth verification failed:", error);
+        return false;
+    }
 }
 
 export async function GET(req: Request) {
     try {
-        // 1. Parse the URL to look for a category filter
         const { searchParams } = new URL(req.url);
         const categoryFilter = searchParams.get('category');
 
@@ -18,25 +26,22 @@ export async function GET(req: Request) {
         let query;
 
         if (authorized) {
-            // ADMIN VIEW: Still get everything for the Manager
+            // ADMIN VIEW: See everything (Drafts + Published)
             query = adminDb.collection('products').orderBy('createdAt', 'desc');
         } else {
-            // PUBLIC VIEW: Start with published items
+            // PUBLIC VIEW: Only see published items
+            // NOTE: This compound query requires a Composite Index in Firebase Console
             query = adminDb.collection('products')
                 .where('status', '==', 'published');
 
-            // 2. SERVER-SIDE FILTERING: If a category is requested, add it to the query
             if (categoryFilter) {
-                // We lowercase here because we save them as lowercase in the POST route
                 query = query.where('category', '==', categoryFilter.toLowerCase());
             }
 
-            // Always sort by newest
             query = query.orderBy('createdAt', 'desc');
         }
 
         const querySnapshot = await query.get();
-
         const products = querySnapshot.docs.map(doc => ({
             _id: doc.id,
             ...doc.data()
@@ -58,7 +63,10 @@ export async function POST(req: Request) {
 
         const data = await req.json();
 
-        // BULLETPROOF DATA PARSING: Prevent crashes if fields are missing
+        /**
+         * EXPLICIT DATA MAPPING
+         * We ignore any 'id' or extra junk sent by the frontend to keep the doc clean.
+         */
         const newProduct = {
             name: data.name || 'Unnamed Product',
             price: Number(data.price) || 0,
@@ -73,54 +81,63 @@ export async function POST(req: Request) {
             sizes: Array.isArray(data.sizes) ? data.sizes : [],
             description: data.description || '',
             activationDate: data.activationDate || null,
-            createdAt: new Date(),
+            createdAt: new Date(), // Server-side timestamp
             updatedAt: new Date(),
         };
 
         const docRef = await adminDb.collection('products').add(newProduct);
 
-        // Safely attempt to revalidate the shop page
         try {
             revalidatePath('/shop');
             revalidatePath('/');
         } catch (revalError) {
-            console.warn("Revalidation skipped, path might not be static.");
+            console.warn("Revalidation skipped.");
         }
         
         return NextResponse.json({ _id: docRef.id, ...newProduct, message: "Success" });
 
     } catch (error: any) {
-        console.error("POST Error details:", error.message);
+        console.error("POST Error:", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
 
 export async function PUT(req: Request) {
     try {
-        // 1. CHECK SECURITY
         const authorized = await isAuthorized(req);
         if (!authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
         const data = await req.json();
+        
+        // Destructure 'id' out so it's not accidentally saved inside the document fields
         const { id, ...updateData } = data;
 
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        // 2. FORMAT DATA
+        /**
+         * SCHEMA-BASED UPDATE
+         * We explicitly pick only the fields allowed to be updated.
+         * This prevents UI-only state from being saved to your database.
+         */
         const cleanedData = {
-            ...updateData,
+            name: updateData.name,
             price: Number(updateData.price),
+            discountPrice: updateData.discountPrice ? Number(updateData.discountPrice) : null,
+            category: updateData.category?.trim().toLowerCase(),
             stock: Number(updateData.stock) || 0,
-            updatedAt: new Date()
+            status: updateData.status,
+            imageUrl: updateData.imageUrl,
+            brand: updateData.brand || '',
+            sku: updateData.sku || '',
+            colors: Array.isArray(updateData.colors) ? updateData.colors : [],
+            sizes: Array.isArray(updateData.sizes) ? updateData.sizes : [],
+            description: updateData.description || '',
+            activationDate: updateData.activationDate || null,
+            updatedAt: new Date() // Always refresh the timestamp on the server
         };
 
-        // Remove the id from the actual data payload
-        delete cleanedData.id;
-
-        // 3. UPDATE FIRESTORE
         await adminDb.collection('products').doc(id).update(cleanedData);
 
-        // Safely attempt to revalidate so edits appear instantly
         try {
             revalidatePath('/shop');
             revalidatePath('/');
@@ -130,13 +147,13 @@ export async function PUT(req: Request) {
 
         return NextResponse.json({ success: true, id });
     } catch (error: any) {
+        console.error("PUT Error:", error.message);
         return NextResponse.json({ error: "Update failed" }, { status: 500 });
     }
 }
 
 export async function DELETE(req: Request) {
     try {
-        // 1. CHECK SECURITY
         const authorized = await isAuthorized(req);
         if (!authorized) return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
 
@@ -144,10 +161,8 @@ export async function DELETE(req: Request) {
         const id = searchParams.get('id');
         if (!id) return NextResponse.json({ error: "ID required" }, { status: 400 });
 
-        // 2. DELETE FROM FIRESTORE
         await adminDb.collection('products').doc(id).delete();
         
-        // Safely attempt to revalidate so deleted items vanish instantly
         try {
             revalidatePath('/shop');
             revalidatePath('/');

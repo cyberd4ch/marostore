@@ -4,7 +4,7 @@ import { useState, ChangeEvent, FormEvent, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { useRouter } from "next/navigation";
 import { doc, updateDoc } from "firebase/firestore";
-import { db, auth } from "@/app/utils/firebase/firebase.utils";
+import { db, auth } from "@/lib/utils/firebase/firebase.utils";
 import { selectCurrentUser } from "@/store/user/user.selector";
 import { checkUserSession } from "@/store/user/user.action";
 

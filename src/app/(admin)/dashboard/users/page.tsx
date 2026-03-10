@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch"; // Ensure you have this shadcn 
 import { toast } from 'sonner';
 import { Loader2, ShieldCheck, ShieldAlert } from 'lucide-react';
 
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 
 interface User {
     uid: string;

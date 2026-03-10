@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { auth, db } from '@/app/utils/firebase/firebase.utils';
+import { auth, db } from '@/lib/utils/firebase/firebase.utils';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import { adminAuth, adminDb, verifyAdminStatus } from '@/lib/firebaseAdmin';
 import { revalidatePath } from 'next/cache';

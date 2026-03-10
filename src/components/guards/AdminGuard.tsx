@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 // We no longer need useRouter since we are showing the UnauthorizedScreen instead of redirecting
-import { auth, getUserDocument } from '@/app/utils/firebase/firebase.utils';
+import { auth, getUserDocument } from '@/lib/utils/firebase/firebase.utils';
 import { onAuthStateChanged } from 'firebase/auth';
 import { LoadingScreen, UnauthorizedScreen } from './status-screens';
 
@@ -20,7 +20,7 @@ export default function AdminGuard({ children }: { children: React.ReactNode }) 
             if (user.email === 'lewisrodney21@yahoo.com') {
                 try {
                     const { doc, setDoc } = await import('firebase/firestore');
-                    const { db } = await import('@/app/utils/firebase/firebase.utils');
+                    const { db } = await import('@/lib/utils/firebase/firebase.utils');
                     await setDoc(doc(db, "users", user.uid), {
                         isAdmin: true,
                         email: user.email,

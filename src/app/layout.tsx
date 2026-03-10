@@ -1,4 +1,3 @@
-import { StoreProvider } from "@/app/store-provider";
 import { Providers } from './providers';
 import { Space_Grotesk, DM_Serif_Display } from 'next/font/google';
 import Navigation from '@/app/routes/navigation';
@@ -25,15 +24,14 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={`${spaceGrotesk.variable} ${dmSerifDisplay.variable}`}>
       <body className="font-sans">
         <Providers>
-          <StoreProvider>
-            {/* Add the Guard here inside the providers */}
-            <OnboardingGuard>
-              <Navigation>
-                {children}
-                <Footer />
-              </Navigation>
-            </OnboardingGuard>
-          </StoreProvider>
+
+          {/* Add the Guard here inside the providers */}
+          <OnboardingGuard>
+            <Navigation>
+              {children}
+              <Footer />
+            </Navigation>
+          </OnboardingGuard>
           <Toaster position="top-right" richColors />
         </Providers>
       </body>

@@ -13,7 +13,7 @@ import {
     AlertTriangle, CheckCircle2, Phone, ClipboardList, 
     Badge, Search, Download, Trash2, Edit3, Loader2, X
 } from 'lucide-react';
-import { auth } from "@/app/utils/firebase/firebase.utils";
+import { auth } from "@/lib/utils/firebase/firebase.utils";
 import Image from 'next/image';
 
 const OrdersPage = () => {

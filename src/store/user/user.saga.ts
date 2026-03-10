@@ -3,7 +3,7 @@ import { User } from 'firebase/auth';
 import { getDoc, doc } from 'firebase/firestore';
 
 import { USER_ACTION_TYPES } from './user.types';
-import { db } from '../../app/utils/firebase/firebase.utils';
+import { db } from '../../lib/utils/firebase/firebase.utils';
 
 import {
     signInSuccess,
@@ -25,7 +25,7 @@ import {
     createAuthUserWithEmailAndPassword,
     signOutUser,
     AdditionalInformation,
-} from '../../app/utils/firebase/firebase.utils';
+} from '../../lib/utils/firebase/firebase.utils';
 
 /* --- WORKERS --- */
 

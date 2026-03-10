@@ -10,7 +10,7 @@ import {
     Lock, Bell, Settings, Truck, ClipboardList,
     Activity
 } from 'lucide-react';
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 import { signOut } from 'firebase/auth';
 import { clearSessionCookie } from '@/app/actions/logout';
 import { toast } from 'sonner';

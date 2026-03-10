@@ -10,7 +10,7 @@ import { toast } from "sonner";
 
 // Firestore Imports
 import { doc, updateDoc, arrayUnion, arrayRemove } from "firebase/firestore";
-import { db } from "@/app/utils/firebase/firebase.utils";
+import { db } from "@/lib/utils/firebase/firebase.utils";
 
 import { addItemToCart } from "@/store/cart/cart.action";
 import { selectCartItems } from "@/store/cart/cart.selector";

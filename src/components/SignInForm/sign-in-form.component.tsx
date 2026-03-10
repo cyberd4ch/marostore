@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 
 // Firebase & Redux Imports
-import { auth } from '@/app/utils/firebase/firebase.utils';
+import { auth } from '@/lib/utils/firebase/firebase.utils';
 import { emailSignInStart, googleSignInStart } from '@/store/user/user.action';
 import { selectCurrentUser } from '@/store/user/user.selector';
 import { selectCartItems } from '@/store/cart/cart.selector';
