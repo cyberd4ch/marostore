@@ -1,10 +1,31 @@
 import type { NextConfig } from "next";
 
+// @ts-ignore - Ignore type warnings if allowedDevOrigins isn't recognized by the standard NextConfig interface
 const nextConfig: NextConfig = {
   output: 'standalone',
-  // Allows you to test the admin dashboard on your local network
-  allowedDevOrigins: ['192.168.0.134'],
+  
+  // Trusted development array
+  allowedDevOrigins: ['192.168.0.134', '172.20.10.4', 'localhost:3000'],
+  
   trailingSlash: false,
+
+  // FIX: Provide only known type configuration variables
+  devIndicators: {
+    position: 'bottom-right', 
+  },
+
+  // 👇 SECURE REVERSE PROXY CONFIGURATION 👇
+  async rewrites() {
+    return [
+      {
+        // Intercept any frontend call to /api/*
+        source: '/api/:path*',
+        // Dynamically tunnel it to Render in production, or fallback to local Django
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'}/api/:path*`, 
+      },
+    ];
+  },
+
 
   images: {
     remotePatterns: [
@@ -22,11 +43,16 @@ const nextConfig: NextConfig = {
       {
         protocol: 'https',
         hostname: 'res.cloudinary.com',
-        pathname: '/**', // Added to ensure Cloudinary images load correctly
+        pathname: '/**', 
       },
       {
         protocol: 'https',
-        hostname: 'api.dicebear.com', // Added this for your new preset avatars
+        hostname: 'api.dicebear.com', 
+        pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
         pathname: '/**',
       }
     ],

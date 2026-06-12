@@ -17,11 +17,23 @@ export default function AddToCart({ product }: { product: any }) {
     const cartItems = useSelector(selectCartItems);
     const wishlistItems = useSelector(selectWishlistItems);
     
-    // Mock sizes and colors for UI (you can map this to your actual data if available)
-    const sizes = ['XS', 'S', 'M', 'L', 'XL'];
-    const colors = ['#000000', '#16a34a', '#f97316', '#e2e8f0', '#3b82f6']; // Black, Green, Orange, Light Gray, Blue
+    const getLabelPrefix = () => {
+        const categoryLower = product.category?.toLowerCase() || '';
+        if (categoryLower.includes('jacket')) return 'Jacket';
+        if (categoryLower.includes('slide') || categoryLower.includes('sneaker') || categoryLower.includes('shoe')) return 'Footwear';
+        if (categoryLower.includes('hat') || categoryLower.includes('cap')) return 'Headwear';
+        return 'Product';
+    };
+
+    const labelPrefix = getLabelPrefix();
     
-    const [selectedSize, setSelectedSize] = useState<string>('L');
+    const sizes = labelPrefix === 'Footwear' 
+        ? ['39', '40', '41', '42', '43', '44'] 
+        : ['XS', 'S', 'M', 'L', 'XL'];
+        
+    const colors = ['#000000', '#16a34a', '#f97316', '#e2e8f0', '#3b82f6'];
+    
+    const [selectedSize, setSelectedSize] = useState<string>(sizes[2] || 'M');
     const [selectedColor, setSelectedColor] = useState<string>(colors[0]);
 
     const isFavorite = wishlistItems.some((item: any) => item.id === product.id);
@@ -44,10 +56,13 @@ export default function AddToCart({ product }: { product: any }) {
     };
 
     return (
-        <div className="flex flex-col space-y-8">
+        // Synchronized the exact structural right padding buffer (pr-4 sm:pr-6 md:pr-10) here
+        <div className="flex flex-col space-y-8 pr-4 sm:pr-6 md:pr-10">
             {/* Color Selection */}
             <div className="flex items-center gap-4">
-                <span className="font-semibold text-slate-900 min-w-[100px]">Jacket Color :</span>
+                <span className="font-bold uppercase text-[11px] tracking-wider text-slate-400 min-w-[120px]">
+                    {labelPrefix} Color :
+                </span>
                 <div className="flex gap-3">
                     {colors.map((color) => (
                         <button
@@ -66,17 +81,19 @@ export default function AddToCart({ product }: { product: any }) {
 
             {/* Size Selection */}
             <div className="flex items-center gap-4">
-                <span className="font-semibold text-slate-900 min-w-[100px]">Jacket Size :</span>
+                <span className="font-bold uppercase text-[11px] tracking-wider text-slate-400 min-w-[120px]">
+                    {labelPrefix} Size :
+                </span>
                 <div className="flex flex-wrap gap-2">
                     {sizes.map((size) => (
                         <button
                             key={size}
                             onClick={() => setSelectedSize(size)}
                             className={cn(
-                                "h-10 w-10 sm:h-12 sm:w-12 rounded-md border text-sm font-medium transition-all flex items-center justify-center",
+                                "h-10 w-10 rounded-md border-2 text-xs font-black transition-all flex items-center justify-center",
                                 selectedSize === size 
                                     ? "bg-slate-900 text-white border-slate-900" 
-                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-400"
+                                    : "bg-white text-slate-600 border-slate-200 hover:border-slate-900"
                             )}
                         >
                             {size}
@@ -88,38 +105,40 @@ export default function AddToCart({ product }: { product: any }) {
             {/* Action Buttons */}
             <div className="grid grid-cols-2 gap-4 pt-2">
                 <Button 
-                    className="h-14 bg-[#111111] hover:bg-black text-white rounded-md font-medium text-base"
+                    className="h-14 bg-slate-900 hover:bg-black text-white rounded-xl font-bold uppercase tracking-widest text-[11px] border-2 border-slate-900 transition-all shadow-sm"
                     onClick={handleAddToCart}
                 >
-                    <ShoppingCart className="w-5 h-5 mr-2" />
+                    <ShoppingCart className="w-4 h-4 mr-2" />
                     Add to Cart
                 </Button>
                 
                 <Button 
                     variant="outline" 
-                    className="h-14 bg-[#F5F5F5] hover:bg-[#E5E5E5] border-none text-slate-900 rounded-md font-medium text-base"
+                    className="h-14 bg-white hover:bg-slate-900 hover:text-white border-2 border-slate-900 text-slate-900 rounded-xl font-bold uppercase tracking-widest text-[11px] transition-all"
                     onClick={handleToggleWishlist}
                 >
-                    <Heart className={cn("w-5 h-5 mr-2 transition-colors", isFavorite && "fill-slate-900")} />
+                    <Heart className={cn("w-4 h-4 mr-2 transition-colors", isFavorite && "fill-current")} />
                     Wish List
                 </Button>
             </div>
 
-            {/* Delivery Info Box */}
-            <div className="border border-slate-200 rounded-md flex flex-col mt-4">
-                <div className="flex items-start gap-4 p-4 sm:p-5 border-b border-slate-200">
-                    <Truck className="w-6 h-6 text-slate-700 shrink-0 mt-1" />
+            {/* Premium Delivery Info Box */}
+            <div className="border-2 border-slate-100 rounded-2xl flex flex-col mt-6 bg-slate-50/30 overflow-hidden">
+                <div className="flex items-start gap-4 p-5 border-b border-slate-100">
+                    <Truck className="w-4 h-4 text-slate-900 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900">Free Delivery</span>
-                        <span className="text-sm text-slate-500 mt-1 underline cursor-pointer hover:text-slate-800">Enter your postal code for delivery Availability</span>
+                        <span className="font-black text-slate-900 uppercase tracking-wider text-[11px]">Free Delivery</span>
+                        <span className="text-xs text-slate-400 mt-1 underline cursor-pointer hover:text-slate-900 transition-colors">
+                            Enter your postal code for delivery Availability
+                        </span>
                     </div>
                 </div>
-                <div className="flex items-start gap-4 p-4 sm:p-5">
-                    <RefreshCcw className="w-6 h-6 text-slate-700 shrink-0 mt-1" />
+                <div className="flex items-start gap-4 p-5">
+                    <RefreshCcw className="w-4 h-4 text-slate-900 shrink-0 mt-0.5" />
                     <div className="flex flex-col">
-                        <span className="font-semibold text-slate-900">Return Delivery</span>
-                        <span className="text-sm text-slate-500 mt-1">
-                            Free 30 Days Delivery Returns. <span className="underline font-medium cursor-pointer text-slate-900 hover:text-black">Details</span>
+                        <span className="font-black text-slate-900 uppercase tracking-wider text-[11px]">Return Delivery</span>
+                        <span className="text-xs text-slate-400 mt-1 leading-normal">
+                            Free 30 Days Delivery Returns. <span className="underline font-black text-slate-600 hover:text-black transition-colors">Details</span>
                         </span>
                     </div>
                 </div>

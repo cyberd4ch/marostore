@@ -57,7 +57,7 @@ export default function UserManagement() {
 
     const toggleAdmin = async (uid: string, currentStatus: boolean) => {
         try {
-            const res = await fetch('/api/admin/users', {
+            const res = await fetch('/api/admin/users/', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ uid, isAdmin: !currentStatus }),

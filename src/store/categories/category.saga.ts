@@ -1,36 +1,36 @@
 import { takeLatest, all, call, put } from 'typed-redux-saga';
-
-// 1. Import the transformation function from your reducer
-import { transformProductsToCategories } from './category.reducer';
+import { productService } from '../../services/productService'; // Import your updated client layer
 
 import {
   fetchCategoriesSuccess,
   fetchCategoriesFailed,
 } from './category.action';
 
-import { CATEGORIES_ACTION_TYPES, CategoryItem } from './category.types';
+import { CATEGORIES_ACTION_TYPES } from './category.types';
+import { transformProductsToCategories } from './category.reducer';
 
 export function* fetchCategoriesAsync() {
   try {
-    // 2. Fetch from your internal API route
-    // In typed-redux-saga, use yield* for calls to ensure type inference
-    const response = yield* call(fetch, '/api/products');
-    
-    // We need to call .json() on the response
-    const products: any[] = yield* call([response, response.json]);
+    // 1. Yield the call straight to your Axios Django client wrapper
+    const products = yield* call(productService.getAllProducts);
 
-    // 3. Filter for 'published' items and valid categories
+    console.log("RAW PRODUCTS FROM DJANGO:", products);
+    
+    // 2. Filter for active items coming from your SQL tables
     const liveProducts = products.filter(
-      (p: any) => p.status === 'published' && p.category
+      (p: any) => p.is_active === true && p.category
     );
 
-    // 4. Transform the flat DB array into the Category[] structure expected by Redux
+    // 3. Transform the flat Django DB rows into the UI expected structure
     const categoriesArray = transformProductsToCategories(liveProducts);
 
-    // 5. Send the structured array to Redux
+    console.log("TRANSFORMED CATEGORIES FOR REDUX:", categoriesArray);
+
+    // 4. Send the structured array to Redux
     yield* put(fetchCategoriesSuccess(categoriesArray));
     
   } catch (error) {
+    console.error("SAGA FETCH ERROR:", error);
     yield* put(fetchCategoriesFailed(error as Error));
   }
 }

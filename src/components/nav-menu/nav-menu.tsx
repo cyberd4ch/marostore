@@ -12,34 +12,35 @@ import {
 export const NavMenu = () => (
   <NavigationMenu>
     <NavigationMenuList className="hidden md:flex gap-2">
+      
+      {/* Home Link */}
       <NavigationMenuItem>
-        <Link href="/" legacyBehavior passHref>
-          <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
-            Home
-          </NavigationMenuLink>
-        </Link>
+        <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
+          <Link href="/">Home</Link>
+        </NavigationMenuLink>
       </NavigationMenuItem>
+
+      {/* Shop Link */}
       <NavigationMenuItem>
-        <Link href="/shop" legacyBehavior passHref>
-          <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
-            Shop
-          </NavigationMenuLink>
-        </Link>
+        <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
+          <Link href="/shop">Shop</Link>
+        </NavigationMenuLink>
       </NavigationMenuItem>
+
+      {/* About Us Link */}
       <NavigationMenuItem>
-        <Link href="/about" legacyBehavior passHref>
-          <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
-            About Us
-          </NavigationMenuLink>
-        </Link>
+        <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
+          <Link href="/about">About Us</Link>
+        </NavigationMenuLink>
       </NavigationMenuItem>
+
+      {/* Contact Link */}
       <NavigationMenuItem>
-        <Link href="/contact" legacyBehavior passHref>
-          <NavigationMenuLink className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
-            Contact
-          </NavigationMenuLink>
-        </Link>
+        <NavigationMenuLink asChild className={`${navigationMenuTriggerStyle()} bg-transparent font-medium text-slate-600 hover:text-slate-900`}>
+          <Link href="/contact">Contact</Link>
+        </NavigationMenuLink>
       </NavigationMenuItem>
+
     </NavigationMenuList>
   </NavigationMenu>
 );

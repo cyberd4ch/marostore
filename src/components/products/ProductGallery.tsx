@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
@@ -10,13 +10,18 @@ interface ProductGalleryProps {
 }
 
 export default function ProductGallery({ images, title }: ProductGalleryProps) {
-    // If no images are provided, we use a fallback array to prevent errors
     const galleryImages = images?.length > 0 ? images : ['/placeholder.jpg'];
     const [selectedImage, setSelectedImage] = useState(galleryImages[0]);
 
+    // Force selection to synchronize whenever the user switches between items
+    useEffect(() => {
+        if (galleryImages.length > 0) {
+            setSelectedImage(galleryImages[0]);
+        }
+    }, [images]); // Tracks changes to the raw source images property array
+
     return (
         <div className="flex flex-col gap-4">
-            {/* Main Image Display */}
             <div className="relative aspect-square w-full overflow-hidden rounded-xl bg-[#F6F6F6]">
                 <Image
                     src={selectedImage}
@@ -24,11 +29,10 @@ export default function ProductGallery({ images, title }: ProductGalleryProps) {
                     fill
                     priority
                     sizes="(max-width: 768px) 100vw, 600px"
-                    className="object-cover object-center transition-opacity duration-300"
+                    className="object-contain object-center p-4 transition-opacity duration-300" 
                 />
             </div>
 
-            {/* Thumbnails Row */}
             <div className="grid grid-cols-4 gap-4">
                 {galleryImages.map((img, index) => (
                     <button
@@ -47,7 +51,7 @@ export default function ProductGallery({ images, title }: ProductGalleryProps) {
                             alt={`${title} view ${index + 1}`}
                             fill
                             sizes="150px"
-                            className="object-cover"
+                            className="object-contain p-1"
                         />
                     </button>
                 ))}

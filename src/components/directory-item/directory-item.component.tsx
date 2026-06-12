@@ -10,7 +10,7 @@ const DirectoryItem = ({ category }: { category: any }) => {
 
     return (
         <DirectoryItemContainer onClick={onNavigateHandler}>
-            <BackgroundImage imageUrl={imageUrl} />
+            <BackgroundImage $imageUrl={imageUrl} />
             <Body>
                 <CategoryTitle>{title}</CategoryTitle>
                 <p className="text-[10px] tracking-[0.2em] uppercase font-bold text-slate-400 group-hover:text-slate-900 transition-colors">

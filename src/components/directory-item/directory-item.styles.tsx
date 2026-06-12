@@ -1,11 +1,11 @@
 import styled from 'styled-components';
 
-export const BackgroundImage = styled.div<{ imageUrl: string }>`
+export const BackgroundImage = styled.div<{ $imageUrl: string }>`
   width: 100%;
   height: 100%;
   background-size: cover;
   background-position: center;
-  background-image: ${({ imageUrl }) => `url(${imageUrl})`};
+  background-image: ${({ $imageUrl }) => `url(${$imageUrl})`};
   transition: transform 1.2s cubic-bezier(0.25, 0.45, 0.45, 0.95);
 `;
 

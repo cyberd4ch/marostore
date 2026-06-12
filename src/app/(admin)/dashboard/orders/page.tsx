@@ -25,7 +25,7 @@ const OrdersPage = () => {
     const fetchOrders = async () => {
         try {
             const token = await auth.currentUser?.getIdToken(true);
-            const res = await fetch(`/api/admin/orders?t=${Date.now()}`, {
+            const res = await fetch(`/api/admin/orders/?t=${Date.now()}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${token}`,

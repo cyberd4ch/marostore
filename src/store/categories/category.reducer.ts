@@ -9,22 +9,27 @@ import {
 // 1. ADD THE TRANSFORMATION UTILITY
 // This converts the flat product list from your API into the Category array format
 export const transformProductsToCategories = (products: any[]): Category[] => {
+    if (!products || !Array.isArray(products)) return [];
+
     const grouped = products.reduce((acc, product) => {
+        if (!product.category) return acc;
+        
         const categoryTitle = product.category.toLowerCase();
+        // Fallback or map the Django 'feature_image' property cleanly 
+        const productImg = product.feature_image || product.imageUrl || '';
         
         if (!acc[categoryTitle]) {
             acc[categoryTitle] = {
                 title: categoryTitle,
-                // Using the first product's image as the category cover
-                imageUrl: product.imageUrl, 
+                imageUrl: productImg, 
                 items: []
             };
         }
         
         acc[categoryTitle].items.push({
-            id: product._id || product.id,
+            id: product.id,
             name: product.name,
-            imageUrl: product.imageUrl,
+            imageUrl: productImg, // Injects the Django feature_image string
             price: Number(product.price)
         });
         

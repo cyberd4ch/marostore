@@ -1,57 +1,37 @@
 'use client';
 
-import { useState, useEffect, Fragment } from 'react';
+import { useMemo, Fragment } from 'react';
 import { useParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { selectCategoriesMap, selectCategoriesIsLoading } from '@/store/categories/category.selector';
 import ProductCard from '@/components/ProductCard';
 import Spinner from '@/components/spinner/spinner.component';
-import { toast } from 'sonner';
 
 export default function CategoryPage() {
-    // 1. Get the category from the URL (e.g., /shop/sneakers)
     const params = useParams();
-    const categoryName = params?.category as string;
+    const categoryName = (params?.category as string) || '';
     
-    const [products, setProducts] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const categoriesMap = useSelector(selectCategoriesMap);
+    const isLoading = useSelector(selectCategoriesIsLoading);
 
-    useEffect(() => {
-        const fetchCategoryProducts = async () => {
-            if (!categoryName) return;
-            
-            setIsLoading(true);
-            try {
-                // 2. Fetch all live products
-                const response = await fetch('/api/products');
-                const allProducts = await response.json();
+    // Read directly from Redux map using case-insensitive validation keys
+    const products = useMemo(() => {
+        if (!categoriesMap || !categoryName) return [];
 
-                if (!response.ok) throw new Error(allProducts.error || "Failed to load");
+        // Match exact keys (e.g., 'mens', 'womens', 'sneakers')
+        const targetKey = Object.keys(categoriesMap).find(
+            (key) => key.toLowerCase() === categoryName.toLowerCase()
+        );
 
-                // 3. FILTER: Match products to the current category 
-                // Using .toLowerCase() on both sides makes it bulletproof
-                const filteredProducts = await response.json();
+        const targetItems = targetKey ? categoriesMap[targetKey] : [];
 
-                if (!response.ok) throw new Error(filteredProducts.error || "Failed to load");
-                
-                
-
-                // 4. NORMALIZE: Ensure ProductCard gets the right ID/Image
-                const normalized = filteredProducts.map((p: any) => ({
-                    ...p,
-                    id: p._id || p.id,
-                    imageUrl: p.imageUrl || p.image
-                }));
-
-                setProducts(normalized);
-            } catch (error: any) {
-                console.error("Category Fetch Error:", error);
-                toast.error("Could not load category items");
-            } finally {
-                setIsLoading(false);
-            }
-        };
-
-        fetchCategoryProducts();
-    }, [categoryName]);
+        // Normalize indices to safeguard layout items downstream
+        return targetItems.map((p: any) => ({
+            ...p,
+            id: p._id || p.id,
+            imageUrl: p.imageUrl || p.image
+        }));
+    }, [categoriesMap, categoryName]);
 
     return (
         <Fragment>

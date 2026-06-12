@@ -89,9 +89,9 @@ const AdminDashboard = () => {
                 const headers = { 'Authorization': `Bearer ${token}` };
 
                 const [prodRes, orderRes, userRes] = await Promise.allSettled([
-                    fetch('/api/products', { headers }),
-                    fetch('/api/orders', { headers }),
-                    fetch('/api/users', { headers })
+                    fetch('/api/products/', { headers }),
+                    fetch('/api/orders/', { headers }),
+                    fetch('/api/users/', { headers })
                 ]);
 
                 if (!isMounted) return;

@@ -1,10 +1,11 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useMemo, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useSelector } from 'react-redux';
+import { selectCategoriesMap, selectCategoriesIsLoading } from '@/store/categories/category.selector';
 import CategoryPreview from '@/components/category-preview/category-preview.component';
 import Spinner from '@/components/spinner/spinner.component';
-import { toast } from 'sonner';
 import { ChevronDown } from 'lucide-react';
 
 type SortOption = 'newest' | 'price-low' | 'price-high' | 'name';
@@ -13,88 +14,79 @@ function ShopContent() {
     const searchParams = useSearchParams();
     const query = searchParams.get('search')?.toLowerCase() || '';
 
-    const [categories, setCategories] = useState<any[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const categoriesMap = useSelector(selectCategoriesMap);
+    const isLoading = useSelector(selectCategoriesIsLoading);
     const [sortBy, setSortBy] = useState<SortOption>('newest');
 
-    useEffect(() => {
-        const fetchLiveProducts = async () => {
-            try {
-                const response = await fetch('/api/products');
-                const allProducts = await response.json();
+    // Process collection transforms dynamically using useMemo
+    const processedCategories = useMemo(() => {
+        if (!categoriesMap) return [];
 
-                if (!response.ok) throw new Error(allProducts.error || "Failed to fetch");
+        // 1. Flatten all categories out to sort/filter uniformly
+        let allProducts: any[] = Object.keys(categoriesMap).reduce((acc: any[], categoryTitle) => {
+            const items = categoriesMap[categoryTitle].map((item: any) => ({
+                ...item,
+                categoryName: categoryTitle,
+                // Ensure uniform fields mapping safely
+                id: item._id || item.id,
+                imageUrl: item.imageUrl || item.image
+            }));
+            return [...acc, ...items];
+        }, []);
 
-                // 1. FILTER
-                let processedProducts = query 
-                    ? allProducts.filter((product: any) => 
-                        product.name.toLowerCase().includes(query) || 
-                        product.category?.toLowerCase().includes(query) ||
-                        product.brand?.toLowerCase().includes(query)
-                      )
-                    : allProducts;
+        // 2. Apply active Search Queries
+        if (query) {
+            allProducts = allProducts.filter((product: any) => 
+                product.name?.toLowerCase().includes(query) || 
+                product.categoryName?.toLowerCase().includes(query) ||
+                product.brand?.toLowerCase().includes(query)
+            );
+        }
 
-                // 2. SORT
-                processedProducts = [...processedProducts].sort((a: any, b: any) => {
-                    switch (sortBy) {
-                        case 'price-low':
-                            return a.price - b.price;
-                        case 'price-high':
-                            return b.price - a.price;
-                        case 'name':
-                            return a.name.localeCompare(b.name);
-                        case 'newest':
-                        default:
-                            // Assumes createdAt is a Firestore timestamp or ISO string
-                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                    }
-                });
-
-                // 3. GROUP
-                const grouped = processedProducts.reduce((acc: any, product: any) => {
-                    const categoryName = (product.category || 'New Arrivals').toUpperCase();
-                    
-                    if (!acc[categoryName]) {
-                        acc[categoryName] = { title: categoryName, items: [] };
-                    }
-                    
-                    acc[categoryName].items.push(product);
-                    return acc;
-                }, {});
-
-                setCategories(Object.values(grouped));
-            } catch (error: any) {
-                console.error("Shop Load Error:", error);
-                toast.error(`Shop offline: ${error.message}`);
-            } finally {
-                setIsLoading(false);
+        // 3. Process Sort orders
+        allProducts.sort((a: any, b: any) => {
+            switch (sortBy) {
+                case 'price-low':
+                    return a.price - b.price;
+                case 'price-high':
+                    return b.price - a.price;
+                case 'name':
+                    return (a.name || '').localeCompare(b.name || '');
+                case 'newest':
+default:
+                    return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
             }
-        };
+        });
 
-        fetchLiveProducts();
-    }, [query, sortBy]); // Re-run when query OR sort changes
+        // 4. Group back by category smoothly
+        const grouped = allProducts.reduce((acc: any, product: any) => {
+            const title = product.categoryName.toUpperCase();
+            if (!acc[title]) {
+                acc[title] = { title, items: [] };
+            }
+            acc[title].items.push(product);
+            return acc;
+        }, {});
+
+        return Object.values(grouped);
+    }, [categoriesMap, query, sortBy]);
 
     if (isLoading) return <Spinner />;
 
     return (
         <div className="max-w-7xl mx-auto px-4 py-12 flex flex-col gap-10 md:gap-16">
-            
             {/* Header & Controls */}
             <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 border-b border-slate-100 pb-8">
                 <div>
                     {query ? (
                         <>
                             <h1 className="text-xs font-black uppercase tracking-[0.3em] text-red-600 mb-2">Search Results</h1>
-                            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">
-                                "{query}"
-                            </h2>
+                            <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">"{query}"</h2>
                         </>
                     ) : (
                         <>
                             <h1 className="text-xs font-black uppercase tracking-[0.3em] text-slate-400 mb-2">Collection</h1>
-                            <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">
-                                All Drops
-                            </h2>
+                            <h2 className="text-4xl font-black text-slate-900 uppercase tracking-tighter">All Drops</h2>
                         </>
                     )}
                 </div>
@@ -119,8 +111,8 @@ function ShopContent() {
             </div>
 
             {/* Product Feed */}
-            {categories.length > 0 ? (
-                categories.map((category: any) => (
+            {processedCategories.length > 0 ? (
+                processedCategories.map((category: any) => (
                     <CategoryPreview 
                         key={category.title} 
                         title={category.title} 
@@ -132,17 +124,7 @@ function ShopContent() {
                     <h2 className="text-2xl font-black text-slate-300 uppercase tracking-widest">
                         {query ? "No Results Found" : "Inventory Empty"}
                     </h2>
-                    <p className="text-slate-400 mt-2">
-                        Try adjusting your search or filters.
-                    </p>
-                    {query && (
-                        <button 
-                            onClick={() => window.location.href = '/shop'}
-                            className="mt-6 text-xs font-black uppercase tracking-widest border-b-2 border-slate-900 pb-1"
-                        >
-                            Back to full shop
-                        </button>
-                    )}
+                    <p className="text-slate-400 mt-2">Try adjusting your search or filters.</p>
                 </div>
             )}
         </div>
